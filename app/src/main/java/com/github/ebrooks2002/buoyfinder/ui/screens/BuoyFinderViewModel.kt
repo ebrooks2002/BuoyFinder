@@ -17,23 +17,21 @@ sealed interface BuoyFinderUiState {
     data class Success(val assetData: AssetData) : BuoyFinderUiState
     object Error : BuoyFinderUiState
     object Loading : BuoyFinderUiState
+    object Idle : BuoyFinderUiState
 }
 
 class BuoyFinderViewModel : ViewModel(){
 
-    var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Loading)
+    var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Idle)
         private set
 
-
-    init {
-        getAssetData()
-    }
 
     fun getAssetData() {
         viewModelScope.launch {
             buoyFinderUiState = BuoyFinderUiState.Loading
             buoyFinderUiState = try {
                 val listResult = SPOTApi.retrofitService.getData()
+                Log.d("BuoyDebug","List Result: $listResult")
                 BuoyFinderUiState.Success(listResult)
             } catch (e: HttpException) {
                 Log.e("BuoyViewModel","Network request failed: ${e.code()} ${e.message()}", e)

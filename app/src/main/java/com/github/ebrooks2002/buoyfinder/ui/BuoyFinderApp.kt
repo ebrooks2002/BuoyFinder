@@ -18,6 +18,7 @@ fun BuoyFinderApp() {
 
         HomeScreen(
             buoyFinderUiState = buoyFinderViewModel.buoyFinderUiState,
+            onGetDataClicked = { buoyFinderViewModel.getAssetData() }
         )
     }
 }
