@@ -12,19 +12,20 @@ import kotlinx.coroutines.launch
 
 import retrofit2.HttpException
 
-
 sealed interface BuoyFinderUiState {
     data class Success(val assetData: AssetData) : BuoyFinderUiState
     object Error : BuoyFinderUiState
     object Loading : BuoyFinderUiState
-    object Idle : BuoyFinderUiState
 }
 
 class BuoyFinderViewModel : ViewModel(){
-
-    var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Idle)
+    var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Loading)
         private set
 
+
+    init {
+        getAssetData()
+    }
 
     fun getAssetData() {
         viewModelScope.launch {
@@ -42,5 +43,4 @@ class BuoyFinderViewModel : ViewModel(){
             }
         }
     }
-
 }
