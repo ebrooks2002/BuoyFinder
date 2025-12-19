@@ -42,13 +42,16 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.ui.graphics.RectangleShape
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import android.location.Location
+import androidx.compose.foundation.layout.height
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
@@ -80,7 +83,6 @@ fun HomeScreen(
         )
     }
 
-
     when (buoyFinderUiState) {
         is BuoyFinderUiState.Loading -> LoadingScreen()
         is BuoyFinderUiState.Success -> ResultScreen(
@@ -106,11 +108,42 @@ fun ResultScreen(assetData: AssetData,
     val selectedMessage = messages.find { it.messengerName == selectedAssetName }
     val assetName = selectedMessage?.messengerName?.substringAfterLast("_") ?: "Select an Asset "
     val position = if (selectedMessage != null) {
-        "Loc: ${selectedMessage.latitude}, ${selectedMessage.longitude}"
+        "Location: ${selectedMessage.latitude}, ${selectedMessage.longitude}"
     } else {
         "Position not available"
     }
-    val dateTime = selectedMessage?.dateTime ?: "Time not available"
+    val rawDateTime = selectedMessage?.dateTime
+    var formattedDate = "Date not available"
+    var formattedTime = "Time not available"
+
+
+    if (rawDateTime != null && rawDateTime.isNotBlank()) {
+        try {
+            // 1. Parser for the input format (e.g., 2025-12-12T21:36:42+0000)
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
+
+            val ghanaTimeZone = TimeZone.getTimeZone("Africa/Accra")
+            inputFormat.timeZone = ghanaTimeZone
+
+            // 2. Parsers for the output format
+            val outputDateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+            outputDateFormat.timeZone = ghanaTimeZone
+
+            val outputTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            outputTimeFormat.timeZone = ghanaTimeZone
+
+            val dateObj = inputFormat.parse(rawDateTime)
+
+            if (dateObj != null) {
+                formattedDate = outputDateFormat.format(dateObj)
+                formattedTime = "${outputTimeFormat.format(dateObj)} GMT"
+            }
+        } catch (e: Exception) {
+            formattedDate = rawDateTime
+            formattedTime = ""
+        }
+    }
+
 
     var gpsInfo = "Waiting for GPS..."
     if (userLocation != null && selectedMessage != null) {
@@ -131,7 +164,7 @@ fun ResultScreen(assetData: AssetData,
         // 3. User Heading (Direction you are moving)
         val myHeading = userLocation.bearing
 
-        gpsInfo = "Dist: %.2f km\nBear: %.0f° | Head: %.0f°".format(distanceKm, bearingToBuoy, myHeading)
+        gpsInfo = "%.2f km from tracker\nBear: %.0f° \nHead: %.0f°".format(distanceKm, bearingToBuoy, myHeading)
     }
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -143,7 +176,8 @@ fun ResultScreen(assetData: AssetData,
                 .padding(top = 25.dp, start = 16.dp, end = 16.dp), // Global padding
             horizontalArrangement = Arrangement.SpaceBetween, // Pushes items to edges
             verticalAlignment = Alignment.CenterVertically
-        ) {
+        )
+        {
             // Pass modifier weight(1f) to dropdown if you want it to shrink if text is huge
             DropDownMenu(
                 availableAssets = uniqueAssets,
@@ -151,21 +185,20 @@ fun ResultScreen(assetData: AssetData,
                 currentSelection = selectedAssetName?.substringAfterLast("_")
             )
 
-            // Add a little spacer just in case
             Spacer(modifier = Modifier.width(8.dp))
 
             RefreshFeedButton(onGetDataClicked = onGetDataClicked)
         }
-
         // 2. ASSET DATA DISPLAY (Middle of screen)
-        DisplayAssetData(assetName, position, dateTime, gpsInfo)
+        DisplayAssetData(assetName, position, outputDateFormat = formattedDate, outputTimeFormat = formattedTime, gpsInfo)
     }
 }
 
 @Composable
 fun DisplayAssetData(assetName: String,
                      position: String,
-                     dateTime: String,
+                     outputDateFormat: String,
+                     outputTimeFormat: String,
                      gpsInfo: String? = null) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -176,39 +209,56 @@ fun DisplayAssetData(assetName: String,
             modifier = Modifier
                 .padding(top = 150.dp)
                 .wrapContentHeight()
-                .fillMaxWidth(0.95F)
-                .border(width = 2.dp, color = Color.Black),
+                .fillMaxWidth(0.95F),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 modifier = Modifier
-                    .padding(12.dp)
+                    .padding(10.dp)
                     .fillMaxWidth(),
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
-                text = "Asset: $assetName " // Updated label
+                text = "SPOT Tracker: $assetName " // Updated label
             )
             Text(
                 modifier = Modifier
-                    .padding(12.dp)
+                    .padding(start = 10.dp)
                     .fillMaxWidth(),
-                fontSize = 24.sp, text = position
+                fontSize = 20.sp, text = position
             )
             Text(
                 modifier = Modifier
-                    .padding(12.dp)
+                    .padding(start = 10.dp)
                     .fillMaxWidth(),
-                fontSize = 24.sp, text = dateTime
+                fontSize = 20.sp, text = outputDateFormat
             )
+            Text(
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .fillMaxWidth(),
+                fontSize = 20.sp, text = outputTimeFormat
+            )
+
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
+
+            Text(
+                modifier = Modifier
+                    .padding(10.dp)
+                    .fillMaxWidth(),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                text = "My Device:"
+            )
+
             if (gpsInfo != null) {
                 Text(
                     modifier = Modifier
-                        .padding(12.dp)
+                        .padding(start=10.dp)
                         .fillMaxWidth(),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF006400), // Dark Green color
+                    fontSize = 20.sp,
                     text = gpsInfo
                 )
             }
@@ -229,7 +279,6 @@ fun RefreshFeedButton(
            Text(text = "Refresh",
                maxLines = 1)
        }
-
 }
 
 @Composable
@@ -287,7 +336,6 @@ fun LoadingScreen(modifier: Modifier = Modifier) {
             text = "Loading"
         )
     }
-
 }
 
 @Preview(
