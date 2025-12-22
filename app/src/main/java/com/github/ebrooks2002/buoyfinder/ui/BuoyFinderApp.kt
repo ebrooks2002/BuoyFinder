@@ -30,7 +30,9 @@ fun BuoyFinderApp() {
             buoyFinderUiState = buoyFinderViewModel.buoyFinderUiState,
             onGetDataClicked = { buoyFinderViewModel.getAssetData()},
             userLocation = buoyFinderViewModel.userLocation,
-            onStartLocationUpdates = {buoyFinderViewModel.startLocationTracking(context)}
+            onStartLocationUpdates = {buoyFinderViewModel.startLocationTracking(context)},
+            userRotation = buoyFinderViewModel.userRotation,
+            onStartRotationUpdates = {buoyFinderViewModel.startRotationTracking(context)}
         )
     }
 }
@@ -49,7 +51,10 @@ fun BuoyFinderAppPreview() {
             ), // Or .Success("...")
             onGetDataClicked = {}, // Empty lambda function (does nothing)
             userLocation = null,   // Or a specific Location object if needed
-            onStartLocationUpdates = {} // Empty lambda function
+            onStartLocationUpdates = {},
+            userRotation = 0f,
+            onStartRotationUpdates = {},
+            // Empty lambda function
         )
     }
 }

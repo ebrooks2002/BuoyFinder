@@ -69,6 +69,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     userLocation: Location?,
     onStartLocationUpdates: () -> Unit,
+    userRotation : Float?,
+    onStartRotationUpdates: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -79,6 +81,7 @@ fun HomeScreen(
 
         if (fineLocationGranted || coarseLocationGranted) {
             onStartLocationUpdates()
+            onStartRotationUpdates()
         }
     }
 
@@ -86,7 +89,8 @@ fun HomeScreen(
         locationPermissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.BODY_SENSORS
             )
         )
     }
@@ -96,7 +100,8 @@ fun HomeScreen(
         is BuoyFinderUiState.Success -> ResultScreen(
             buoyFinderUiState.assetData,
             onGetDataClicked,
-            userLocation = userLocation
+            userLocation = userLocation,
+            userRotation = userRotation
         )
         is BuoyFinderUiState.Error -> ErrorScreen()
     }
@@ -108,7 +113,8 @@ fun HomeScreen(
 fun ResultScreen(assetData: AssetData,
                  onGetDataClicked: () -> Unit,
                  modifier: Modifier = Modifier,
-                 userLocation: Location?) {
+                 userLocation: Location?,
+                 userRotation: Float?) {
 
     val messages = assetData.feedMessageResponse?.messages?.list ?: emptyList()
     val uniqueAssets = messages.mapNotNull { it.messengerName }.distinct().sorted()
@@ -152,7 +158,6 @@ fun ResultScreen(assetData: AssetData,
         }
     }
 
-
     var gpsInfo = "Waiting for GPS..."
     if (userLocation != null && selectedMessage != null) {
         // Create a Location object for the Buoy to do math
@@ -164,15 +169,31 @@ fun ResultScreen(assetData: AssetData,
         val distanceMeters = userLocation.distanceTo(buoyLocation)
         val distanceKm = distanceMeters / 1000
 
-        // 2. Bearing (Direction to travel)
-        // returns degrees East of true North
         val bearingToBuoy = userLocation.bearingTo(buoyLocation)
 
-        // 3. User Heading (Direction you are moving)
         val myHeading = userLocation.bearing
 
-        gpsInfo = "%.2f km from tracker\nBear: %.0f° \nHead: %.0f°".format(distanceKm, bearingToBuoy, myHeading)
+        if (userRotation != null) {
+            val currentlyFacing = userRotation
+            gpsInfo = """
+            Distance to Buoy: %.2f km
+            Bearing to Buoy: %.0f°
+            Currently Moving Towards: %.0f°
+            Currently Pointed Towards: %.0f°
+        """.trimIndent().format(distanceKm, bearingToBuoy, currentlyFacing)
+        } else {
+            // If compass is unavailable, show a different message
+            gpsInfo = """
+            Distance to Buoy: %.2f km
+            Must Move Towards: %.0f°
+            Currently Moving Towards: %.0f°
+            No Magnetometer/Accelerometer Found
+        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading)
+        }
+    } else {
+        gpsInfo = "Waiting for GPS Location..."
     }
+
     Column(modifier = Modifier.fillMaxSize()
         .verticalScroll(rememberScrollState())
     ) {
@@ -269,7 +290,6 @@ fun DisplayAssetData(assetName: String,
         }
     }
 
-
 @Composable
 fun RefreshFeedButton(
     onGetDataClicked: () -> Unit,
@@ -365,8 +385,11 @@ fun HomeScreenPreview() {
                 userLocation = viewModel.userLocation,
                 onStartLocationUpdates = {
                     viewModel.startLocationTracking(context)
+                },
+                userRotation = viewModel.userRotation,
+                onStartRotationUpdates = {
+                    viewModel.startRotationTracking(context)
                 }
-
             )
         }
     }

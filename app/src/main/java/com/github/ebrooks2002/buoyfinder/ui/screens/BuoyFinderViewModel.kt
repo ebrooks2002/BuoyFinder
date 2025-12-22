@@ -9,10 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.github.ebrooks2002.buoyfinder.model.AssetData
 import com.github.ebrooks2002.buoyfinder.network.SPOTApi
 import kotlinx.coroutines.launch
-
 import retrofit2.HttpException
 import android.location.Location
 import com.github.ebrooks2002.buoyfinder.location.LocationFinder
+import com.github.ebrooks2002.buoyfinder.location.RotationSensor
 
 sealed interface BuoyFinderUiState {
     data class Success(val assetData: AssetData) : BuoyFinderUiState
@@ -21,15 +21,26 @@ sealed interface BuoyFinderUiState {
 }
 
 class BuoyFinderViewModel : ViewModel(){
-    var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Loading)
+    public var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Loading)
         private set
-    var userLocation: Location? by mutableStateOf(null)
+    public var userLocation: Location? by mutableStateOf(null)
         private set
 
+    public var userRotation: Float? by mutableStateOf(null)
+        private set
+
+
+    fun startRotationTracking(context: android.content.Context) {
+        val rotationClient = RotationSensor(context)
+        viewModelScope.launch {
+            rotationClient.getRotationUpdates().collect { rotation ->
+                userRotation = rotation
+            }
+        }
+    }
 
     fun startLocationTracking(context: android.content.Context) {
         val locationClient = LocationFinder(context)
-
         viewModelScope.launch {
             // Update every 2 seconds (2000ms)
             locationClient.getLocationUpdates(2000L).collect { location ->
