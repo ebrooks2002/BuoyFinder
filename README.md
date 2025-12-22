@@ -15,3 +15,4 @@ Here's what that looks like:
   <img src="https://github.com/user-attachments/assets/d91ec712-0f5b-4099-8b1a-164e8259d935" width="300" height="600" alt="Buoy Finder Screenshot">
 </p>
 
+*Note: My ultra-budget Samsung A01 doesn't have a magnetometer or accelerometer. Without these, "Currently Facing" won't show.*
