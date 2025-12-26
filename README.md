@@ -16,3 +16,9 @@ Here's what that looks like:
 </p>
 
 *Note: My low-budget Samsung A01 doesn't have a magnetometer or accelerometer. Without these, "Currently Facing" won't show.*
+
+If you find any bugs in the app, please create a new issue describing it.
+
+## Who:
+
+This project is being built and maintained by Ethan Brooks. The project is under the guidance of Omand Lab at University of Rhode Island Graduate School of Oceanography, whom the app is being developed for. Still, this app is open for anyone's use who needs to track a their SPOT TRACE devices.
