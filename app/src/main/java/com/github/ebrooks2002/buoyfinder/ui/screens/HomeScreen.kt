@@ -105,8 +105,6 @@ fun HomeScreen(
         )
         is BuoyFinderUiState.Error -> ErrorScreen()
     }
-
-
 }
 
 @Composable
@@ -175,12 +173,15 @@ fun ResultScreen(assetData: AssetData,
 
         if (userRotation != null) {
             val currentlyFacing = userRotation
+            val directions = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+            val index = kotlin.math.round(currentlyFacing / 45f).toInt() % 8
+            val directionString = directions[index]
             gpsInfo = """
             Distance to Buoy: %.2f km
             Bearing to Buoy: %.0f°
             Currently Moving Towards: %.0f°
-            Currently Pointed Towards: %.0f°
-        """.trimIndent().format(distanceKm, bearingToBuoy, currentlyFacing)
+            Currently Pointed Towards: %.0f %s°
+        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, currentlyFacing, directionString)
         } else {
             // If compass is unavailable, show a different message
             gpsInfo = """
@@ -282,7 +283,7 @@ fun DisplayAssetData(assetName: String,
                     modifier = Modifier
                         .padding(start=10.dp)
                         .fillMaxWidth(),
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     text = gpsInfo
                 )
             }

@@ -33,22 +33,22 @@ class RotationSensor (private val context: Context) {
         val orientationAngles = FloatArray(3)
 
         val sensorListener = object: SensorEventListener {
-
+            val alpha = 0.99f
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
                 // don't need to implement
             }
             // implement onSensorChanged function
             override fun onSensorChanged(event: SensorEvent) {
                 if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                    System.arraycopy(
-                        event.values, 0, accelerometerReading,
-                        0, accelerometerReading.size
-                    )
+                    // Apply Low-Pass Filter to Accelerometer
+                    for (i in 0..2) {
+                        accelerometerReading[i] = alpha * accelerometerReading[i] + (1 - alpha) * event.values[i]
+                    }
                 } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-                    System.arraycopy(
-                        event.values, 0, magnetometerReading,
-                        0, magnetometerReading.size
-                    )
+                    // Apply Low-Pass Filter to Magnetometer
+                    for (i in 0..2) {
+                        magnetometerReading[i] = alpha * magnetometerReading[i] + (1 - alpha) * event.values[i]
+                    }
                 }
 
                 val success = SensorManager.getRotationMatrix(
@@ -64,8 +64,8 @@ class RotationSensor (private val context: Context) {
                 }
             }
         }
-        client.registerListener(sensorListener, accelerometer, SensorManager.SENSOR_DELAY_UI)
-        client.registerListener(sensorListener, magnetometer, SensorManager.SENSOR_DELAY_UI)
+        client.registerListener(sensorListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+        client.registerListener(sensorListener, magnetometer, SensorManager.SENSOR_DELAY_NORMAL)
 
         awaitClose {
             client.unregisterListener(sensorListener)
