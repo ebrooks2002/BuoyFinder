@@ -82,7 +82,6 @@ fun HomeScreen(
             onStartRotationUpdates()
         }
     }
-
     LaunchedEffect(Unit) {
         locationPermissionLauncher.launch(
             arrayOf(
@@ -92,7 +91,6 @@ fun HomeScreen(
             )
         )
     }
-
     var currentAssetData by remember { mutableStateOf<AssetData?>(null) }
 
     if (buoyFinderUiState is BuoyFinderUiState.Success) {
@@ -119,6 +117,8 @@ fun HomeScreen(
     }
 }
 
+
+
 @Composable
 fun ResultScreen(assetData: AssetData,
                  onGetDataClicked: () -> Unit,
@@ -139,36 +139,8 @@ fun ResultScreen(assetData: AssetData,
         "Position not available"
     }
     val rawDateTime = selectedMessage?.dateTime
-    var formattedDate = "Date not available"
-    var formattedTime = "Time not available"
 
-
-    if (rawDateTime != null && rawDateTime.isNotBlank()) {
-        try {
-            // 1. Parser for the input format (e.g., 2025-12-12T21:36:42+0000)
-            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
-
-            val ghanaTimeZone = TimeZone.getTimeZone("Africa/Accra")
-            inputFormat.timeZone = ghanaTimeZone
-
-            // 2. Parsers for the output format
-            val outputDateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-            outputDateFormat.timeZone = ghanaTimeZone
-
-            val outputTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-            outputTimeFormat.timeZone = ghanaTimeZone
-
-            val dateObj = inputFormat.parse(rawDateTime)
-
-            if (dateObj != null) {
-                formattedDate = outputDateFormat.format(dateObj)
-                formattedTime = "${outputTimeFormat.format(dateObj)} GMT"
-            }
-        } catch (e: Exception) {
-            formattedDate = rawDateTime
-            formattedTime = ""
-        }
-    }
+    val (formattedDate, formattedTime) = formatMessageDate(rawDateTime)
 
     var gpsInfo = "Waiting for GPS..."
     if (userLocation != null && selectedMessage != null) {
@@ -252,7 +224,6 @@ fun ResultScreen(assetData: AssetData,
         }
         // 2. ASSET DATA DISPLAY (Middle of screen)
         DisplayAssetData(assetName, position, outputDateFormat = formattedDate, outputTimeFormat = formattedTime, gpsInfo)
-
     }
 }
 
@@ -394,6 +365,38 @@ fun LoadingScreen(modifier: Modifier = Modifier) {
             lineHeight = 40.sp,
             text = "Loading"
         )
+    }
+}
+
+
+private fun formatMessageDate(rawDateTime: String?): Pair<String, String> {
+    if (rawDateTime.isNullOrBlank()) {return Pair("Date not available", "Time not available")
+    }
+
+    return try {
+        // 1. Input Parser (e.g., 2025-12-12T21:36:42+0000)
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
+        val targetTimeZone = TimeZone.getTimeZone("Africa/Accra") // Or use TimeZone.getDefault() for local
+        inputFormat.timeZone = targetTimeZone
+
+        // 2. Output Parsers
+        val outputDateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        outputDateFormat.timeZone = targetTimeZone
+
+        val outputTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        outputTimeFormat.timeZone = targetTimeZone
+
+        val dateObj = inputFormat.parse(rawDateTime)
+
+        if (dateObj != null) {
+            val dateStr = outputDateFormat.format(dateObj)
+            val timeStr = "${outputTimeFormat.format(dateObj)} GMT"
+            Pair(dateStr, timeStr)
+        } else {
+            Pair(rawDateTime, "")
+        }
+    } catch (e: Exception) {
+        Pair(rawDateTime, "")
     }
 }
 
