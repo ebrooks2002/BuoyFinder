@@ -28,7 +28,7 @@ fun BuoyFinderApp() {
         val context = LocalContext.current
         HomeScreen(
             buoyFinderUiState = buoyFinderViewModel.buoyFinderUiState,
-            onGetDataClicked = { buoyFinderViewModel.getAssetData()},
+            onGetDataClicked = {buoyFinderViewModel.getAssetData()},
             userLocation = buoyFinderViewModel.userLocation,
             onStartLocationUpdates = {buoyFinderViewModel.startLocationTracking(context)},
             userRotation = buoyFinderViewModel.userRotation,

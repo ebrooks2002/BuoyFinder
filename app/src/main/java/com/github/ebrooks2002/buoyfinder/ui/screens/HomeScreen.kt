@@ -58,9 +58,7 @@ import androidx.compose.material3.Surface
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.ebrooks2002.buoyfinder.ui.theme.BuoyFinderTheme
-import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorManager
+
 
 @Composable
 fun HomeScreen(
@@ -95,15 +93,29 @@ fun HomeScreen(
         )
     }
 
-    when (buoyFinderUiState) {
-        is BuoyFinderUiState.Loading -> LoadingScreen()
-        is BuoyFinderUiState.Success -> ResultScreen(
-            buoyFinderUiState.assetData,
-            onGetDataClicked,
+    var currentAssetData by remember { mutableStateOf<AssetData?>(null) }
+
+    if (buoyFinderUiState is BuoyFinderUiState.Success) {
+           currentAssetData = buoyFinderUiState.assetData
+    }
+
+    if (currentAssetData != null) {
+        ResultScreen(
+            assetData = currentAssetData!!, // This is where the variable comes from
+            onGetDataClicked = onGetDataClicked,
             userLocation = userLocation,
-            userRotation = userRotation
+            userRotation = userRotation,
+            // Pass true if we are currently loading or in error state
+            loading = buoyFinderUiState is BuoyFinderUiState.Loading,
+            error = buoyFinderUiState is BuoyFinderUiState.Error
         )
-        is BuoyFinderUiState.Error -> ErrorScreen()
+    }
+    else {
+        when (buoyFinderUiState) {
+            is BuoyFinderUiState.Loading -> LoadingScreen()
+            is BuoyFinderUiState.Error -> ErrorScreen()
+            else -> {} // Success is handled above
+        }
     }
 }
 
@@ -112,10 +124,12 @@ fun ResultScreen(assetData: AssetData,
                  onGetDataClicked: () -> Unit,
                  modifier: Modifier = Modifier,
                  userLocation: Location?,
-                 userRotation: Float?) {
+                 userRotation: Float?,
+                 loading: Boolean,
+                 error: Boolean) {
 
     val messages = assetData.feedMessageResponse?.messages?.list ?: emptyList()
-    val uniqueAssets = messages.mapNotNull { it.messengerName }.distinct().sorted()
+    val uniqueAssets = messages.mapNotNull{ it.messengerName }.distinct().sorted()
     var selectedAssetName by remember { mutableStateOf(uniqueAssets.firstOrNull()) }
     val selectedMessage = messages.find { it.messengerName == selectedAssetName }
     val assetName = selectedMessage?.messengerName?.substringAfterLast("_") ?: "Select an Asset "
@@ -166,9 +180,7 @@ fun ResultScreen(assetData: AssetData,
         // 1. Distance (Meters -> Kilometers)
         val distanceMeters = userLocation.distanceTo(buoyLocation)
         val distanceKm = distanceMeters / 1000
-
         val bearingToBuoy = userLocation.bearingTo(buoyLocation)
-
         val myHeading = userLocation.bearing
 
         if (userRotation != null) {
@@ -217,6 +229,26 @@ fun ResultScreen(assetData: AssetData,
             Spacer(modifier = Modifier.width(8.dp))
 
             RefreshFeedButton(onGetDataClicked = onGetDataClicked)
+
+            }
+        if (loading) {
+            Text(
+                text = "Refreshing data...",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(4.dp)
+            )
+        }
+
+        if (error) {
+            Text(
+                text = "Offline - Showing last known data",
+                fontSize = 12.sp,
+                color = Color.Red,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(4.dp)
+            )
         }
         // 2. ASSET DATA DISPLAY (Middle of screen)
         DisplayAssetData(assetName, position, outputDateFormat = formattedDate, outputTimeFormat = formattedTime, gpsInfo)

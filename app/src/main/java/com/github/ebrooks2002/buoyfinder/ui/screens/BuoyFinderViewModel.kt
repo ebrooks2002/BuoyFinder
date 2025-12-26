@@ -29,6 +29,8 @@ class BuoyFinderViewModel : ViewModel(){
     public var userRotation: Float? by mutableStateOf(null)
         private set
 
+    public var assetDataRecieved: Boolean? by mutableStateOf(null)
+        private set
 
     fun startRotationTracking(context: android.content.Context) {
         val rotationClient = RotationSensor(context)
@@ -54,17 +56,23 @@ class BuoyFinderViewModel : ViewModel(){
     }
 
     fun getAssetData() {
+
+        val assetRecieved = true
+
         viewModelScope.launch {
             buoyFinderUiState = BuoyFinderUiState.Loading
             buoyFinderUiState = try {
                 val listResult = SPOTApi.retrofitService.getData()
-                Log.d("BuoyDebug","List Result: $listResult")
+                assetDataRecieved = true
+                Log.d("BuoyDebug", "List Result: $listResult")
                 BuoyFinderUiState.Success(listResult)
             } catch (e: HttpException) {
-                Log.e("BuoyViewModel","Network request failed: ${e.code()} ${e.message()}", e)
+                Log.e("BuoyViewModel", "Network request failed: ${e.code()} ${e.message()}", e)
+                assetDataRecieved = false
                 BuoyFinderUiState.Error
-            } catch (e: Exception){
-                Log.e("BuoyViewModel","Error fetching message ${e.message}", e)
+            } catch (e: Exception) {
+                assetDataRecieved = false
+                Log.e("BuoyViewModel", "Error fetching message ${e.message}", e)
                 BuoyFinderUiState.Error
             }
         }
