@@ -110,8 +110,8 @@ fun HomeScreen(
     }
     else {
         when (buoyFinderUiState) {
-            is BuoyFinderUiState.Loading -> LoadingScreen()
-            is BuoyFinderUiState.Error -> ErrorScreen()
+            is BuoyFinderUiState.Loading -> ErrorLoadingMessage(message="Loading")
+            is BuoyFinderUiState.Error -> ErrorLoadingMessage(message="Error Fetching Data")
             else -> {} // Success is handled above
         }
     }
@@ -197,34 +197,30 @@ fun ResultScreen(assetData: AssetData,
                 onAssetSelected = { newName -> selectedAssetName = newName },
                 currentSelection = selectedAssetName?.substringAfterLast("_")
             )
-
             Spacer(modifier = Modifier.width(8.dp))
-
             RefreshFeedButton(onGetDataClicked = onGetDataClicked)
-
             }
         if (loading) {
-            Text(
-                text = "Refreshing data...",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(4.dp)
-            )
+            displayRefreshMessage(color=Color.Gray, message="Refreshing data...")
         }
-
         if (error) {
-            Text(
-                text = "Offline - Showing last known data",
-                fontSize = 12.sp,
-                color = Color.Red,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(4.dp)
-            )
+            displayRefreshMessage(color=Color.Red, message="Offline - Showing last known data")
+
         }
         // 2. ASSET DATA DISPLAY (Middle of screen)
         DisplayAssetData(assetName, position, outputDateFormat = formattedDate, outputTimeFormat = formattedTime, gpsInfo)
     }
+}
+
+@Composable
+fun displayRefreshMessage(color: Color, message: String) {
+    Text(
+        text = message,
+        fontSize = 12.sp,
+        color = color,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(4.dp)
+    )
 }
 
 @Composable
@@ -267,11 +263,9 @@ fun DisplayAssetData(assetName: String,
                     .fillMaxWidth(),
                 fontSize = 20.sp, text = outputTimeFormat
             )
-
             Spacer(
                 modifier = Modifier.height(5.dp)
             )
-
             Text(
                 modifier = Modifier
                     .padding(10.dp)
@@ -280,7 +274,6 @@ fun DisplayAssetData(assetName: String,
                 fontWeight = FontWeight.Bold,
                 text = "My Device:"
             )
-
             if (gpsInfo != null) {
                 Text(
                     modifier = Modifier
@@ -290,7 +283,6 @@ fun DisplayAssetData(assetName: String,
                     text = gpsInfo
                 )
             }
-
         }
     }
 
@@ -339,7 +331,8 @@ fun DropDownMenu(
 }
 
 @Composable
-fun ErrorScreen(modifier: Modifier = Modifier) {
+fun ErrorLoadingMessage(modifier: Modifier = Modifier,
+                        message: String) {
     Box(
         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
     ) {
@@ -348,31 +341,16 @@ fun ErrorScreen(modifier: Modifier = Modifier) {
             fontSize = 45.sp,
             textAlign = TextAlign.Center,
             lineHeight = 50.sp,
-            text = "Error retrieving data"
+            text = message
         )
     }
 }
-
-@Composable
-fun LoadingScreen(modifier: Modifier = Modifier) {
-    Box(
-        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-    ) {
-        Text(
-            modifier = Modifier.padding(14.dp),
-            fontSize = 45.sp,
-            textAlign = TextAlign.Center,
-            lineHeight = 40.sp,
-            text = "Loading"
-        )
-    }
-}
-
 
 private fun formatMessageDate(rawDateTime: String?): Pair<String, String> {
-    if (rawDateTime.isNullOrBlank()) {return Pair("Date not available", "Time not available")
-    }
 
+    if (rawDateTime.isNullOrBlank()) {
+        return Pair("Date not available", "Time not available")
+    }
     return try {
         // 1. Input Parser (e.g., 2025-12-12T21:36:42+0000)
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
@@ -399,7 +377,6 @@ private fun formatMessageDate(rawDateTime: String?): Pair<String, String> {
         Pair(rawDateTime, "")
     }
 }
-
 
 @Preview(
     showBackground = true,       // 1. Adds a white background
