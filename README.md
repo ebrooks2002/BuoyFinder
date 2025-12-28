@@ -8,7 +8,7 @@ still see their own location using their phones GPS receiver.
 
 ## Getting Started:
 
-1. Download the app-debug.apk from the releases section on the right.
+1. Download the app-debug.apk from the releases section on the right. 
 
 2. Open the file on your Android device.
 
