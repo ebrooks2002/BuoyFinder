@@ -7,9 +7,16 @@ is lightweight and can run well on older devices. Lastly, Buoy Finder allows dev
 still see their own location using their phones GPS receiver.
 
 ## Getting Started:
-Users can get started using the app by downloading it from the 'Releases' section of this repository. Once installed, they can select a device they'd like to view and pull its most recent data, provided they are online.
 
-Here's what that looks like:
+1. Download the app-debug.apk from the releases section on the right.
+
+2. Open the file on your Android device.
+
+3. If prompted, allow "Install from Unknown Sources" in your browser or file manager settings.
+
+4. If a "Play Protect" warning appears, click "Install Anyway."
+
+Here's what the app should look like:
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/d91ec712-0f5b-4099-8b1a-164e8259d935" width="300" height="650" alt="Buoy Finder Screenshot">
