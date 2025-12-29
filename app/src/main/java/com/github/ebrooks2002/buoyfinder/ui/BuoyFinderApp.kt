@@ -16,7 +16,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.ebrooks2002.buoyfinder.model.AssetData
 import com.github.ebrooks2002.buoyfinder.ui.theme.BuoyFinderTheme
 
-
 @Composable
 fun BuoyFinderApp() {
     Surface(
@@ -32,6 +31,7 @@ fun BuoyFinderApp() {
             userLocation = buoyFinderViewModel.userLocation,
             onStartLocationUpdates = {buoyFinderViewModel.startLocationTracking(context)},
             userRotation = buoyFinderViewModel.userRotation,
+            userDirection = buoyFinderViewModel.headingDirection,
             onStartRotationUpdates = {buoyFinderViewModel.startRotationTracking(context)}
         )
     }
@@ -53,6 +53,7 @@ fun BuoyFinderAppPreview() {
             userLocation = null,   // Or a specific Location object if needed
             onStartLocationUpdates = {},
             userRotation = 0f,
+            userDirection = "N",
             onStartRotationUpdates = {},
             // Empty lambda function
         )

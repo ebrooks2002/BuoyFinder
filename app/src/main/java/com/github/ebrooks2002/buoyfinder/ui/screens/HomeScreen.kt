@@ -1,7 +1,5 @@
 package com.github.ebrooks2002.buoyfinder.ui.screens
 
-
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,11 +16,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.Alignment
@@ -31,14 +27,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -52,10 +44,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import android.location.Location
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Surface
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.ebrooks2002.buoyfinder.ui.theme.BuoyFinderTheme
 
@@ -68,6 +58,7 @@ fun HomeScreen(
     userLocation: Location?,
     onStartLocationUpdates: () -> Unit,
     userRotation : Float?,
+    userDirection :String?,
     onStartRotationUpdates: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -91,6 +82,8 @@ fun HomeScreen(
             )
         )
     }
+
+    // handles offline persistence
     var currentAssetData by remember { mutableStateOf<AssetData?>(null) }
 
     if (buoyFinderUiState is BuoyFinderUiState.Success) {
@@ -103,6 +96,7 @@ fun HomeScreen(
             onGetDataClicked = onGetDataClicked,
             userLocation = userLocation,
             userRotation = userRotation,
+            userDirection = userDirection,
             loading = buoyFinderUiState is BuoyFinderUiState.Loading,
             error = buoyFinderUiState is BuoyFinderUiState.Error
         )
@@ -121,6 +115,7 @@ fun ResultScreen(assetData: AssetData,
                  modifier: Modifier = Modifier,
                  userLocation: Location?,
                  userRotation: Float?,
+                 userDirection: String?,
                  loading: Boolean,
                  error: Boolean) {
 
@@ -139,7 +134,7 @@ fun ResultScreen(assetData: AssetData,
     val formattedTime = selectedMessage?.formattedTime ?: "Time not available"
 
     var gpsInfo = "Waiting for GPS..."
-    if (userLocation != null && selectedMessage != null) {
+    if (userLocation != null && selectedMessage != null) { // if user location and message come through, display info. otherwise we're waiting.
         // Create a Location object for the Buoy to do math
         val buoyLocation = Location("Buoy").apply {
             latitude = selectedMessage.latitude
@@ -151,27 +146,15 @@ fun ResultScreen(assetData: AssetData,
         val bearingToBuoy = userLocation.bearingTo(buoyLocation)
         val myHeading = userLocation.bearing
 
-        if (userRotation != null) {
-            val currentlyFacing = userRotation
-            val directions = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
-            val index = kotlin.math.round(currentlyFacing / 45f).toInt() % 8
-            val directionString = directions[index]
-            gpsInfo = """
-            Distance to Buoy: %.2f km
-            Bearing to Buoy: %.0f°
-            Currently Moving Towards: %.0f°
-            Currently Pointed Towards: %.0f %s°
-        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, currentlyFacing, directionString)
-        } else {
-            // If compass is unavailable, show a different message
-            gpsInfo = """
-            Distance to Buoy: %.2f km
-            Must Move Towards: %.0f°
-            Currently Moving Towards: %.0f°
-            No Magnetometer/Accelerometer Found
-        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading)
-        }
-    } else {
+        gpsInfo = """
+        Distance to Buoy: %.2f km
+        Bearing to Buoy: %.0f°
+        Currently Moving Towards: %.0f°
+        Currently Pointed Towards: %.0f %s°
+        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, userRotation, userDirection)
+
+    }
+    else {
         gpsInfo = "Waiting for GPS Location..."
     }
 
@@ -198,17 +181,17 @@ fun ResultScreen(assetData: AssetData,
             }
 
         if (loading) {
-            displayRefreshMessage(color=Color.Gray, message="Refreshing data...")
+            DisplayRefreshMessage(color=Color.Gray, message="Refreshing data...")
         }
         if (error) {
-            displayRefreshMessage(color=Color.Red, message="Offline - Showing last known data")
+            DisplayRefreshMessage(color=Color.Red, message="Offline - Showing last known data")
         }
 
         DisplayAssetData(assetName, position, outputDateFormat = formattedDate, outputTimeFormat = formattedTime, gpsInfo)
     }
 }
 @Composable
-fun displayRefreshMessage(color: Color, message: String) {
+fun DisplayRefreshMessage(color: Color, message: String) {
     Text(
         text = message,
         fontSize = 12.sp,
@@ -334,37 +317,7 @@ fun ErrorLoadingMessage(modifier: Modifier = Modifier, message: String) {
         )
     }
 }
-private fun formatMessageDate(rawDateTime: String?): Pair<String, String> {
 
-    if (rawDateTime.isNullOrBlank()) {
-        return Pair("Date not available", "Time not available")
-    }
-    return try {
-        // 1. Input Parser (e.g., 2025-12-12T21:36:42+0000)
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
-        val targetTimeZone = TimeZone.getTimeZone("Africa/Accra") // Or use TimeZone.getDefault() for local
-        inputFormat.timeZone = targetTimeZone
-
-        // 2. Output Parsers
-        val outputDateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-        outputDateFormat.timeZone = targetTimeZone
-
-        val outputTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        outputTimeFormat.timeZone = targetTimeZone
-
-        val dateObj = inputFormat.parse(rawDateTime)
-
-        if (dateObj != null) {
-            val dateStr = outputDateFormat.format(dateObj)
-            val timeStr = "${outputTimeFormat.format(dateObj)} GMT"
-            Pair(dateStr, timeStr)
-        } else {
-            Pair(rawDateTime, "")
-        }
-    } catch (e: Exception) {
-        Pair(rawDateTime, "")
-    }
-}
 
 @Preview(
     showBackground = true,       // 1. Adds a white background
@@ -388,6 +341,7 @@ fun HomeScreenPreview() {
                     viewModel.startLocationTracking(context)
                 },
                 userRotation = viewModel.userRotation,
+                userDirection = viewModel.headingDirection,
                 onStartRotationUpdates = {
                     viewModel.startRotationTracking(context)
                 }

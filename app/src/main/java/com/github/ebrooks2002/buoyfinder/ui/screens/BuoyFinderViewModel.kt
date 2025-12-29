@@ -21,13 +21,23 @@ sealed interface BuoyFinderUiState {
 }
 
 class BuoyFinderViewModel : ViewModel(){
-    public var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Loading)
+    var buoyFinderUiState: BuoyFinderUiState by mutableStateOf(BuoyFinderUiState.Loading)
         private set
-    public var userLocation: Location? by mutableStateOf(null)
+    var userLocation: Location? by mutableStateOf(null)
         private set
 
-    public var userRotation: Float? by mutableStateOf(null)
+    var userRotation: Float? by mutableStateOf(null)
         private set
+
+    // given userRotation, calculates direction (n, w, s, e). returns string.
+    val headingDirection: String
+        get() {
+            val rot = userRotation ?: return "No Compass Found"
+            val directions = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+            val index = kotlin.math.round(rot / 45f).toInt() % 8
+            val safeIndex = (index + 8) % 8
+            return directions[safeIndex]
+        }
 
     private val locUpdateInterval = 3000L // User location update interval length in milliseconds.
 
@@ -39,6 +49,7 @@ class BuoyFinderViewModel : ViewModel(){
             }
         }
     }
+
     fun startLocationTracking(context: android.content.Context) {
         val locationClient = LocationFinder(context)
         viewModelScope.launch {
