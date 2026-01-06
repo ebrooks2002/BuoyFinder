@@ -56,6 +56,20 @@ import androidx.compose.material3.Surface
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.ebrooks2002.buoyfinder.ui.theme.BuoyFinderTheme
 
+
+/**
+ * Asks for permission for location and compass, displays dropdown menu, asset and location data,
+ * refresh button, and error/loading message.
+ *
+ * @param modifier Modifier to apply to this layout node.
+ * @param buoyFinderUiState The current state of the UI.
+ * @param onGetDataClicked A function to be called when the refresh button is clicked.
+ * @param userLocation The current location of the user.
+ * @param onStartLocationUpdates A function to start location updates.
+ * @param userRotation The current rotation of the user.
+ * @param userDirection The current direction of the user.
+ * @param onStartRotationUpdates A function to start rotation updates.
+ */
 @Composable
 fun HomeScreen(
     buoyFinderUiState: BuoyFinderUiState,
@@ -145,7 +159,7 @@ fun ResultScreen(assetData: AssetData,
             latitude = selectedMessage.latitude
             longitude = selectedMessage.longitude
         }
-        // 1. Distance (Meters -> Kilometers)
+
         val distanceMeters = userLocation.distanceTo(buoyLocation)
         val distanceKm = distanceMeters / 1000
         val bearingToBuoy = userLocation.bearingTo(buoyLocation)

@@ -1,7 +1,8 @@
 /**
- * @author Ethan Brooks
- * MainActivity.kt is the entry point for the Buoy Finder app.
+ * The entry point for the Buoy Finder app.
  * Creates an instance of the BuoyFinderApp() inside the onCreate function.
+ *
+ * @author Ethan Brooks
  */
 
 package com.github.ebrooks2002.buoyfinder
