@@ -48,6 +48,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import android.location.Location
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults.cardColors
@@ -170,7 +171,7 @@ fun ResultScreen(assetData: AssetData,
         Distance to Buoy: %.2f km
         Bearing to Buoy: %.0f°
         Currently Moving Towards: %.0f°
-        Currently Pointed Towards: %.0f %s°
+        Currently Pointed Towards: %.0f° %s
         """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, userRotation, userDirection)
 
     }
@@ -211,7 +212,12 @@ fun ResultScreen(assetData: AssetData,
                 .height(400.dp) // You MUST set a height
                 .padding(top = 16.dp)
         ) {
-            OfflineMap()
+            OfflineMap(
+                modifier = Modifier
+                    .height(295.dp)
+                    .padding(start=12.dp, end=12.dp)
+                    .border(2.dp, Color.Black)
+            )
         }
     }
 }

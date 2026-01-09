@@ -16,6 +16,7 @@ import com.github.ebrooks2002.buoyfinder.ui.BuoyFinderApp
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        org.maplibre.android.MapLibre.getInstance(this)
         enableEdgeToEdge()
         setContent {
             BuoyFinderTheme {
