@@ -1,6 +1,7 @@
 package com.github.ebrooks2002.buoyfinder.ui.map
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -12,6 +13,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.github.ebrooks2002.buoyfinder.model.AssetData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.maplibre.android.MapLibre
@@ -19,17 +21,46 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.Point
 import java.io.File
 import java.io.FileOutputStream
+import com.github.ebrooks2002.buoyfinder.ui.screens.BuoyFinderViewModel
+
+
+
 
 @Composable
 fun OfflineMap(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    assetData: AssetData,
+    viewmodel: BuoyFinderViewModel = BuoyFinderViewModel()
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // State to hold the prepared style URL
+    // create a nav state object containing attributes like position, asset name, ect.
+    val assetData = viewmodel.getNavigationState(assetData)
+
+    val featureCollection = remember(assetData.messages) {
+        val features = assetData.messages.map { message ->
+            val feature = Feature.fromGeometry(
+                Point.fromLngLat(message.longitude, message.latitude)
+            )
+            // ADD THESE PROPERTIES TO THE FEATURE
+            feature.addStringProperty("name", message.messengerName?.substringAfterLast("_") ?: "Unknown")
+            feature.addStringProperty("date", message.formattedDate ?: "Unknown Date")
+            feature
+        }
+        FeatureCollection.fromFeatures(features)
+    }
+
+
+
     var styleUrl by remember { mutableStateOf<String?>(null) }
 
     // 1. Initialize MapLibre (Once)
@@ -84,13 +115,28 @@ fun OfflineMap(
                 mapView.apply {
                     getMapAsync { map ->
                         map.setStyle(Style.Builder().fromUri(currentStyleUrl)) { style ->
+                            // ADD BUOY LAYER HERE
+                            val sourceId = "buoys-source"
+                            val source = GeoJsonSource(sourceId, featureCollection)
+                            style.addSource(source)
+
+                            val circleLayer = CircleLayer("buoys-layer", sourceId)
+                            circleLayer.setProperties(
+                                PropertyFactory.circleRadius(1f),
+                                PropertyFactory.circleColor(android.graphics.Color.RED),
+                                PropertyFactory.circleStrokeWidth(4f),
+                                PropertyFactory.circleStrokeColor(android.graphics.Color.RED)
+                            )
+                            style.addLayer(circleLayer)
                         }
+
                         val uiSettings = map.uiSettings
                         uiSettings.isZoomGesturesEnabled = true
                         uiSettings.isScrollGesturesEnabled = true
                         uiSettings.isRotateGesturesEnabled = false
                         uiSettings.isTiltGesturesEnabled = false
-                        mapView.setOnTouchListener { view, event ->
+
+                        setOnTouchListener { view, _ ->
                             view.parent.requestDisallowInterceptTouchEvent(true)
                             false
                         }
@@ -103,11 +149,15 @@ fun OfflineMap(
                 }
             },
             modifier = modifier.fillMaxSize(),
-            // update block is left empty or minimal to prevent re-initialization
-            update = { _ -> }
+            update = { _ ->
+                // Refresh pins when new data comes in
+                mapView.getMapAsync { map ->
+                    val source = map.style?.getSourceAs<GeoJsonSource>("buoys-source")
+                    source?.setGeoJson(featureCollection)
+                }
+            }
         )
     } else {
-        // Show loading while files are copying
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }

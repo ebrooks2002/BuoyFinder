@@ -14,6 +14,7 @@ import retrofit2.HttpException
 import android.location.Location
 import com.github.ebrooks2002.buoyfinder.location.LocationFinder
 import com.github.ebrooks2002.buoyfinder.location.RotationSensor
+import com.github.ebrooks2002.buoyfinder.model.Message
 
 sealed interface BuoyFinderUiState {
     data class Success(val assetData: AssetData) : BuoyFinderUiState
@@ -118,8 +119,12 @@ class BuoyFinderViewModel : ViewModel(){
     fun getNavigationState(assetData: AssetData): NavigationState {
         val messages = assetData.feedMessageResponse?.messages?.list ?: emptyList()
 
-        // Get unique list for the dropdown
+        // FILTER: Only keep the most recent message for each unique asset
+        val latestMessagesPerAsset = messages.distinctBy { it.messengerName }
+
+        // Use latestMessagesPerAsset for the rest of the logic
         val uniqueAssets = messages.mapNotNull { it.messengerName }.distinct().sorted()
+
 
         // Default selection logic
         if (selectedAssetName == null && uniqueAssets.isNotEmpty()) {
@@ -157,6 +162,7 @@ class BuoyFinderViewModel : ViewModel(){
         }
 
         return NavigationState(
+            messages = latestMessagesPerAsset,
             selectedAssetName = selectedAssetName,
             displayName = displayName,
             position = position,
@@ -171,6 +177,7 @@ class BuoyFinderViewModel : ViewModel(){
      * Data class to hold pre-processed UI info
      */
     data class NavigationState(
+        val messages : List<Message>,
         val selectedAssetName: String?,
         val displayName: String,
         val position: String,
