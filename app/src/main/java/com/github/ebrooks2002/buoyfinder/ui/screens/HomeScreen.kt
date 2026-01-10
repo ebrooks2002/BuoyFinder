@@ -7,6 +7,7 @@
  */
 
 package com.github.ebrooks2002.buoyfinder.ui.screens
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -76,12 +77,13 @@ import com.github.ebrooks2002.buoyfinder.ui.theme.BuoyFinderTheme
 fun HomeScreen(
     buoyFinderUiState: BuoyFinderUiState,
     onGetDataClicked: () -> Unit,
-    modifier: Modifier = Modifier,
-    userLocation: Location?,
+    modifier: Modifier = Modifier, userLocation: Location?,
     onStartLocationUpdates: () -> Unit,
-    userRotation : Float?,
-    userDirection :String?,
+    userRotation: Float?,
+    userDirection: String?,
     onStartRotationUpdates: () -> Unit,
+    // ADD THIS PARAMETER
+    viewModel: BuoyFinderViewModel = viewModel(),
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -108,119 +110,85 @@ fun HomeScreen(
     var currentAssetData by remember { mutableStateOf<AssetData?>(null) }
 
     if (buoyFinderUiState is BuoyFinderUiState.Success) {
-           currentAssetData = buoyFinderUiState.assetData
+        currentAssetData = buoyFinderUiState.assetData
     }
 
     if (currentAssetData != null) {
         ResultScreen(
             assetData = currentAssetData!!,
+            viewModel = viewModel, // Pass the viewModel here
             onGetDataClicked = onGetDataClicked,
-            userLocation = userLocation,
-            userRotation = userRotation,
-            userDirection = userDirection,
             loading = buoyFinderUiState is BuoyFinderUiState.Loading,
             error = buoyFinderUiState is BuoyFinderUiState.Error
         )
-    }
-    else {
+    } else {
         when (buoyFinderUiState) {
-            is BuoyFinderUiState.Loading -> ErrorLoadingMessage(message="Loading")
-            is BuoyFinderUiState.Error -> ErrorLoadingMessage(message="Error Fetching Data")
+            is BuoyFinderUiState.Loading -> ErrorLoadingMessage(message = "Loading")
+            is BuoyFinderUiState.Error -> ErrorLoadingMessage(message = "Error Fetching Data")
             else -> {}
         }
     }
 }
+
 @Composable
-fun ResultScreen(assetData: AssetData,
-                 onGetDataClicked: () -> Unit,
-                 modifier: Modifier = Modifier,
-                 userLocation: Location?,
-                 userRotation: Float?,
-                 userDirection: String?,
-                 loading: Boolean,
-                 error: Boolean) {
+fun ResultScreen(
+    assetData: AssetData,
+    viewModel: BuoyFinderViewModel, // Pass the ViewModel in
+    onGetDataClicked: () -> Unit,
+    loading: Boolean,
+    error: Boolean
+) {
+    // Everything is processed here in one line
+    val navState = viewModel.getNavigationState(assetData)
 
-    val messages = assetData.feedMessageResponse?.messages?.list ?: emptyList()
-    val uniqueAssets = messages.mapNotNull{ it.messengerName }.distinct().sorted()
-    var selectedAssetName by remember { mutableStateOf(uniqueAssets.firstOrNull()) }
-    val selectedMessage = messages.find { it.messengerName == selectedAssetName }
-    val assetName = selectedMessage?.messengerName?.substringAfterLast("_") ?: "Select an Asset "
-    val position = if (selectedMessage != null) {
-        "Location: ${selectedMessage.latitude}, ${selectedMessage.longitude}"
-    } else {
-        "Position not available"
-    }
-
-    val formattedDate =  selectedMessage?.formattedDate ?: "Date not available"
-    val formattedTime = selectedMessage?.formattedTime ?: "Time not available"
-
-    var gpsInfo = "Waiting for GPS..."
-    if (userLocation != null && selectedMessage != null) { // if user location and message come through, display info. otherwise we're waiting.
-        // Create a Location object for the Buoy to do math
-        val buoyLocation = Location("Buoy").apply {
-            latitude = selectedMessage.latitude
-            longitude = selectedMessage.longitude
-        }
-
-        val distanceMeters = userLocation.distanceTo(buoyLocation)
-        val distanceKm = distanceMeters / 1000
-        val bearingToBuoy = userLocation.bearingTo(buoyLocation)
-        val myHeading = userLocation.bearing
-
-        gpsInfo = """
-        Distance to Buoy: %.2f km
-        Bearing to Buoy: %.0f°
-        Currently Moving Towards: %.0f°
-        Currently Pointed Towards: %.0f° %s
-        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, userRotation, userDirection)
-
-    }
-    else {
-        gpsInfo = "Waiting for GPS Location..."
-    }
-
-    Column(modifier = Modifier.fillMaxSize()
-        .verticalScroll(rememberScrollState())
-    ) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())) {
         Row(
             modifier = Modifier
-                .fillMaxWidth() // Place row at the top
-                .padding(vertical = 5.dp, horizontal = 10.dp), // Global padding
-            horizontalArrangement = Arrangement.SpaceBetween, // Pushes items to edges
+                .fillMaxWidth()
+                .padding(vertical = 5.dp, horizontal = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
-        )
-        {
+        ) {
             DropDownMenu(
-                availableAssets = uniqueAssets,
-                onAssetSelected = { newName -> selectedAssetName = newName },
-                currentSelection = selectedAssetName?.substringAfterLast("_")
+                availableAssets = navState.uniqueAssets,
+                onAssetSelected = { viewModel.selectAsset(it) }, // Update selection in VM
+                currentSelection = navState.displayName
             )
             Spacer(modifier = Modifier.width(8.dp))
             RefreshFeedButton(onGetDataClicked = onGetDataClicked)
-            }
-        if (loading) {
-            DisplayRefreshMessage(color=Color.Gray, message="Refreshing data...")
-        }
-        if (error) {
-            DisplayRefreshMessage(color=Color.Red, message="Offline - Showing last known data")
         }
 
-        DisplayAssetData(assetName, position, outputDateFormat = formattedDate, outputTimeFormat = formattedTime, gpsInfo)
+        if (loading) DisplayRefreshMessage(Color.Gray, "Refreshing data...")
+        if (error) DisplayRefreshMessage(Color.Red, "Offline - Showing last known data")
+
+        // Pass the pre-formatted strings directly
+        DisplayAssetData(
+            assetName = navState.displayName,
+            position = navState.position,
+            outputDateFormat = navState.formattedDate,
+            outputTimeFormat = navState.formattedTime,
+            gpsInfo = navState.gpsInfo
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp) // You MUST set a height
+                .height(400.dp)
                 .padding(top = 16.dp)
-        ) {
+        )
+        {
             OfflineMap(
                 modifier = Modifier
                     .height(295.dp)
-                    .padding(start=12.dp, end=12.dp)
+                    .padding(horizontal = 12.dp)
                     .border(2.dp, Color.Black)
             )
         }
     }
 }
+
 @Composable
 fun DisplayRefreshMessage(color: Color, message: String) {
     Text(
@@ -228,95 +196,102 @@ fun DisplayRefreshMessage(color: Color, message: String) {
         fontSize = 12.sp,
         color = color,
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth().padding(4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp)
     )
 }
+
 @Composable
-fun DisplayAssetData(assetName: String,
-                     position: String,
-                     outputDateFormat: String,
-                     outputTimeFormat: String,
-                     gpsInfo: String? = null) {
-        Card(
+fun DisplayAssetData(
+    assetName: String,
+    position: String,
+    outputDateFormat: String,
+    outputTimeFormat: String,
+    gpsInfo: String? = null
+) {
+    Card(
+        modifier = Modifier
+            .padding(top = 10.dp, start = 16.dp, end = 16.dp)
+            .wrapContentHeight()
+            .fillMaxWidth(),
+        elevation = cardElevation(defaultElevation = 0.dp),
+        colors = cardColors(containerColor = Color.White)
+    ) {
+        Column(
             modifier = Modifier
-                .padding(top = 10.dp, start = 16.dp, end = 16.dp)
+                .padding(vertical = 20.dp)
                 .wrapContentHeight()
-                .fillMaxWidth(),
-            elevation = cardElevation(defaultElevation = 0.dp),
-            colors = cardColors(containerColor = Color.White)
+                .fillMaxWidth(0.95F),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
+            Text(
                 modifier = Modifier
-                    .padding(vertical = 20.dp)
-                    .wrapContentHeight()
-                    .fillMaxWidth(0.95F),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+                    .padding(10.dp)
+                    .fillMaxWidth(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+                text = "Tracker: $assetName "
+            )
+            Text(
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .fillMaxWidth(),
+                fontSize = 20.sp, text = position
+            )
+            Text(
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .fillMaxWidth(),
+                fontSize = 20.sp, text = outputDateFormat
+            )
+            Text(
+                modifier = Modifier
+                    .padding(start = 10.dp)
+                    .fillMaxWidth(),
+                fontSize = 20.sp, text = outputTimeFormat
+            )
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
+            Text(
+                modifier = Modifier
+                    .padding(10.dp)
+                    .fillMaxWidth(),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                text = "My Device:"
+            )
+            if (gpsInfo != null) {
                 Text(
                     modifier = Modifier
-                        .padding(10.dp)
+                        .padding(start = 10.dp, bottom = 10.dp)
                         .fillMaxWidth(),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                    text = "Tracker: $assetName "
+                    fontSize = 18.sp,
+                    text = gpsInfo
                 )
-                Text(
-                    modifier = Modifier
-                        .padding(start = 10.dp)
-                        .fillMaxWidth(),
-                    fontSize = 20.sp, text = position
-                )
-                Text(
-                    modifier = Modifier
-                        .padding(start = 10.dp)
-                        .fillMaxWidth(),
-                    fontSize = 20.sp, text = outputDateFormat
-                )
-                Text(
-                    modifier = Modifier
-                        .padding(start = 10.dp)
-                        .fillMaxWidth(),
-                    fontSize = 20.sp, text = outputTimeFormat
-                )
-                Spacer(
-                    modifier = Modifier.height(5.dp)
-                )
-                Text(
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .fillMaxWidth(),
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    text = "My Device:"
-                )
-                if (gpsInfo != null) {
-                    Text(
-                        modifier = Modifier
-                            .padding(start=10.dp, bottom = 10.dp)
-                            .fillMaxWidth(),
-                        fontSize = 18.sp,
-                        text = gpsInfo
-                    )
-                }
             }
         }
     }
+}
+
 @Composable
-fun RefreshFeedButton(onGetDataClicked: () -> Unit, ) {
-       Button(
-           onClick = onGetDataClicked,
-           modifier = Modifier.padding(top=40.dp, end=8.dp),
-           colors = ButtonDefaults.buttonColors(containerColor = Color(0XFF495583))
-       )
-       {
-           Text(
-               text = "Refresh",
-               maxLines = 1
-           )
-       }
+fun RefreshFeedButton(onGetDataClicked: () -> Unit) {
+    Button(
+        onClick = onGetDataClicked,
+        modifier = Modifier.padding(top = 40.dp, end = 8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0XFF495583))
+    )
+    {
+        Text(
+            text = "Refresh",
+            maxLines = 1
+        )
+    }
 
 }
+
 @Composable
 fun DropDownMenu(
     availableAssets: List<String>, onAssetSelected: (String) -> Unit, currentSelection: String?,
@@ -324,8 +299,14 @@ fun DropDownMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.padding(top = 40.dp, start = 5.dp)) { // Adjust this padding to move it up/down
-        Button(onClick = { expanded = true },
+    Box(
+        modifier = Modifier.padding(
+            top = 40.dp,
+            start = 5.dp
+        )
+    ) { // Adjust this padding to move it up/down
+        Button(
+            onClick = { expanded = true },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0XFF495583))
         ) {
             Text(text = currentSelection ?: "Select Asset")
@@ -344,6 +325,7 @@ fun DropDownMenu(
         }
     }
 }
+
 @Composable
 fun ErrorLoadingMessage(modifier: Modifier = Modifier, message: String) {
     Box(
@@ -374,7 +356,7 @@ fun HomeScreenPreview() {
             val context = LocalContext.current
             HomeScreen(
                 buoyFinderUiState = BuoyFinderUiState.Success(AssetData()),
-                onGetDataClicked = {viewModel.getAssetData()},
+                onGetDataClicked = { viewModel.getAssetData() },
                 userLocation = viewModel.userLocation,
                 onStartLocationUpdates = {
                     viewModel.startLocationTracking(context)

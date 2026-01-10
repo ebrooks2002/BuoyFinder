@@ -35,7 +35,6 @@ class BuoyFinderViewModel : ViewModel(){
         private set
     var userLocation: Location? by mutableStateOf(null)
         private set
-
     var userRotation: Float? by mutableStateOf(null)
         private set
 
@@ -92,7 +91,7 @@ class BuoyFinderViewModel : ViewModel(){
         viewModelScope.launch {
             buoyFinderUiState = BuoyFinderUiState.Loading
             buoyFinderUiState = try {
-                val listResult = SPOTApi.retrofitService.getData()
+                val listResult = SPOTApi.retrofitService.getData() // returns a raw xml file with SPOT API response.
                 Log.d("BuoyDebug", "List Result: $listResult")
                 BuoyFinderUiState.Success(listResult)
             } catch (e: HttpException) {
@@ -104,4 +103,81 @@ class BuoyFinderViewModel : ViewModel(){
             }
         }
     }
+
+    // 1. State to track which asset the user has selected
+    var selectedAssetName by mutableStateOf<String?>(null)
+        private set
+
+    fun selectAsset(name: String) {
+        selectedAssetName = name
+    }
+
+    /**
+     * Processes raw AssetData and Sensor data into a clean state for the UI.
+     */
+    fun getNavigationState(assetData: AssetData): NavigationState {
+        val messages = assetData.feedMessageResponse?.messages?.list ?: emptyList()
+
+        // Get unique list for the dropdown
+        val uniqueAssets = messages.mapNotNull { it.messengerName }.distinct().sorted()
+
+        // Default selection logic
+        if (selectedAssetName == null && uniqueAssets.isNotEmpty()) {
+            selectedAssetName = uniqueAssets.first()
+        }
+
+        val selectedMessage = messages.find { it.messengerName == selectedAssetName }
+
+        // UI String: Asset Name
+        val displayName = selectedMessage?.messengerName?.substringAfterLast("_") ?: "Select an Asset"
+
+        // UI String: Position
+        val position = selectedMessage?.let {
+            "Location: ${it.latitude}, ${it.longitude}"
+        } ?: "Position not available"
+
+        // Math: GPS / Navigation Info
+        var gpsInfo = "Waiting for GPS Location..."
+        if (userLocation != null && selectedMessage != null) {
+            val buoyLoc = Location("Buoy").apply {
+                latitude = selectedMessage.latitude
+                longitude = selectedMessage.longitude
+            }
+
+            val distanceKm = userLocation!!.distanceTo(buoyLoc) / 1000
+            val bearingToBuoy = userLocation!!.bearingTo(buoyLoc)
+            val myHeading = userLocation!!.bearing
+
+            gpsInfo = """
+            Distance to Buoy: %.2f km
+            Bearing to Buoy: %.0f°
+            Currently Moving Towards: %.0f°
+            Currently Pointed Towards: %.0f° %s
+        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, userRotation ?: 0f, headingDirection)
+        }
+
+        return NavigationState(
+            selectedAssetName = selectedAssetName,
+            displayName = displayName,
+            position = position,
+            gpsInfo = gpsInfo,
+            uniqueAssets = uniqueAssets,
+            formattedDate = selectedMessage?.formattedDate ?: "Date not available",
+            formattedTime = selectedMessage?.formattedTime ?: "Time not available"
+        )
+    }
+
+    /**
+     * Data class to hold pre-processed UI info
+     */
+    data class NavigationState(
+        val selectedAssetName: String?,
+        val displayName: String,
+        val position: String,
+        val gpsInfo: String,
+        val uniqueAssets: List<String>,
+        val formattedDate: String,
+        val formattedTime: String
+    )
+
 }
