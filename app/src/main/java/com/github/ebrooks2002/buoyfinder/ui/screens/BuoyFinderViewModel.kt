@@ -133,6 +133,22 @@ class BuoyFinderViewModel : ViewModel(){
 
         val selectedMessage = messages.find { it.messengerName == selectedAssetName }
 
+        val time = selectedMessage?.parseDate()
+
+        val now = System.currentTimeMillis()
+
+        val diffMinutes = if (time != null) {
+            (now - time.time) / (1000 * 60)
+        } else {
+            Long.MAX_VALUE // If no date, treat as "very old"
+        }
+        Log.d("diffMinutes", diffMinutes.toString())
+        val color = when {
+            diffMinutes <= 15 -> "#00A86B" // Green
+            diffMinutes <= 30 -> "#FFFF00" // Yellow
+            else -> "#FF0000"              // Red
+        }
+
         // UI String: Asset Name
         val displayName = selectedMessage?.messengerName?.substringAfterLast("_") ?: "Select an Asset"
 
@@ -169,7 +185,8 @@ class BuoyFinderViewModel : ViewModel(){
             gpsInfo = gpsInfo,
             uniqueAssets = uniqueAssets,
             formattedDate = selectedMessage?.formattedDate ?: "Date not available",
-            formattedTime = selectedMessage?.formattedTime ?: "Time not available"
+            formattedTime = selectedMessage?.formattedTime ?: "Time not available",
+            color = color
         )
     }
 
@@ -184,7 +201,8 @@ class BuoyFinderViewModel : ViewModel(){
         val gpsInfo: String,
         val uniqueAssets: List<String>,
         val formattedDate: String,
-        val formattedTime: String
+        val formattedTime: String,
+        val color: String
     )
 
 }

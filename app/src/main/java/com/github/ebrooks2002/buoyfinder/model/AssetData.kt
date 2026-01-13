@@ -59,7 +59,7 @@ data class Message(
     @field:Element(name = "messageContent", required = false)
     var messageContent: String = ""
 ) {
-    private fun parseDate(): java.util.Date? {
+    fun parseDate(): java.util.Date? {
         return if (dateTime.isNotBlank()) {
             try {
                 SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US).parse(dateTime)
@@ -74,7 +74,8 @@ data class Message(
     val formattedDate: String
         get() {
             val date = parseDate() ?: return "Date not available"
-            val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+            // Changed pattern from "MMM dd, yyyy" to "MM/dd/yyyy"
+            val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
             formatter.timeZone = TimeZone.getTimeZone("Africa/Accra") // Ghana Time
             return formatter.format(date)
         }
