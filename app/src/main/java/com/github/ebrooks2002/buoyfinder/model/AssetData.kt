@@ -1,8 +1,19 @@
+/**
+ *
+ * Define data classes to parse XML Response and assign to data objects.
+ * Uses SimpleXML library's annotated classes.
+ *
+ * @author Ethan Brooks
+ */
+
 package com.github.ebrooks2002.buoyfinder.model
 
 import org.simpleframework.xml.Element
 import org.simpleframework.xml.ElementList
 import org.simpleframework.xml.Root
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 @Root(name = "message", strict = false)
 data class Message(
@@ -45,11 +56,38 @@ data class Message(
     @field:Element(name = "altitude", required = false)
     var altitude: Int = 0,
 
-    // Keep this optional as it appears in some messages but not your current STOP message
     @field:Element(name = "messageContent", required = false)
     var messageContent: String = ""
-)
+) {
+    fun parseDate(): java.util.Date? {
+        return if (dateTime.isNotBlank()) {
+            try {
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US).parse(dateTime)
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
 
+    val formattedDate: String
+        get() {
+            val date = parseDate() ?: return "Date not available"
+            // Changed pattern from "MMM dd, yyyy" to "MM/dd/yyyy"
+            val formatter = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+            formatter.timeZone = TimeZone.getTimeZone("Africa/Accra") // Ghana Time
+            return formatter.format(date)
+        }
+
+    val formattedTime: String
+        get() {
+            val date = parseDate() ?: return "Time not available"
+            val formatter = SimpleDateFormat("HH:mm", Locale.getDefault()) // Military Time
+            formatter.timeZone = TimeZone.getTimeZone("Africa/Accra") // Ghana Time
+            return "${formatter.format(date)} GMT"
+        }
+}
 
 @Root(name = "messages", strict = false)
 data class Messages(
@@ -112,7 +150,6 @@ data class AssetData(
     var errors: ApiErrors? = null
 )
 
-// Optional: Error classes to handle E-0195 cases
 @Root(name = "errors", strict = false)
 data class ApiErrors(
     @field:Element(name = "error", required = false)

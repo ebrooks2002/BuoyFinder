@@ -1,0 +1,63 @@
+{
+  "version": 8,
+  "name": "Ghana Offline Style",
+  "sources": {
+    "local_mbtiles_source": {
+      "type": "vector",
+      "tiles": [ "mbtiles://{path_to_mbtiles}" ]
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f0f8ff"
+      }
+    },
+    {
+      "id": "land-polygons",
+      "type": "fill",
+      "source": "local_mbtiles_source",
+      "source-layer": "coast_3857 — multipolygons",
+      "paint": {
+        "fill-color": "#e0e4cc",
+        "fill-outline-color": "#c9c9c9"
+      }
+    },
+    {
+      "id": "depth-contours",
+      "type": "line",
+      "source": "local_mbtiles_source",
+      "source-layer": "bathlines_3857 — contours",
+      "paint": {
+        "line-color": "#a8dbe6",
+        "line-width": 0.8
+      }
+    },
+    {
+      "id": "roads-and-lines",
+      "type": "line",
+      "source": "local_mbtiles_source",
+      "source-layer": "coast_3857 — lines",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#8d8d8d",
+        "line-width": 1.5
+      }
+    },
+    {
+      "id": "points-of-interest",
+      "type": "circle",
+      "source": "local_mbtiles_source",
+      "source-layer": "coast_3857 — points",
+      "paint": {
+        "circle-color": "#555555",
+        "circle-radius": 1
+      }
+    }
+  ]
+}

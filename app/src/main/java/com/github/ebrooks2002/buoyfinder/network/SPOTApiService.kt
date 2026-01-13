@@ -1,3 +1,8 @@
+/**
+ * @author Ethan Brooks
+ * Builds a Retrofit client, calls SPOT Server, gets XML Feed, parses data using simpleXML.
+ */
+
 package com.github.ebrooks2002.buoyfinder.network
 
 import com.github.ebrooks2002.buoyfinder.model.AssetData
@@ -7,31 +12,32 @@ import retrofit2.http.GET
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 
-// URI of the SPOT XML Feed hard coded atm.
-
 private const val FEED_ID = "0r0YXhJmCiRJpmmJiaAdr6Ez6VIhahnMu"
 
 private const val BASE_URL =
     "https://api.findmespot.com/spot-main-web/consumer/rest-api/2.0/public/feed/$FEED_ID/"
 
-// logger creation
 private val logger = HttpLoggingInterceptor().apply {
-    // LEVEL.BODY prints the full raw XML response
-    level = HttpLoggingInterceptor.Level.BODY
+    level = HttpLoggingInterceptor.Level.BODY // Contains the full raw XML Response.
 }
 
 private val client = OkHttpClient.Builder()
     .addInterceptor(logger)
     .build()
 
-// Create a Retrofit object:
 private val retrofit = Retrofit.Builder()
     .baseUrl(BASE_URL)
     .addConverterFactory(SimpleXmlConverterFactory.create())
     .client(client)
     .build()
 
+/**
+ * Defines how Retrofit talks to the SPOT web server.
+ */
 interface SPOTApiService {
+    /**
+     * Returns an asset data object containing XML feed data.
+     */
     @GET("message.xml")
     suspend fun getData(): AssetData
 }
