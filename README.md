@@ -20,9 +20,20 @@ Here's what the app should look like:
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/d91ec712-0f5b-4099-8b1a-164e8259d935" width="300" height="650" alt="Buoy Finder Screenshot">
+  <img src="https://github.com/user-attachments/assets/57a5cf62-d89b-4c66-b3ce-c6f8539dd792" width="300" height="650" alt="Buoy Finder Screenshot">
 </p>
 
 *Note: My low-budget Samsung A01 doesn't have a magnetometer or accelerometer. Without these, "Currently Facing" won't show.*
+
+The top left button is for selecting which asset's information you want to view. Selecting it will show you:
+ - The assets GPS coordinates
+ - Date and time of most recent update
+ - Your distance from asset
+ - Bearing to asset
+
+Additionally, the direction you're currently moving and pointed towards is shown below the above info. Some devices without an magnetometer won't be able to show direction you're facing.
+
+The map shows the coast of Ghana with bathymetry lines. Assets are projected on the map. Their color (green, yellow, or red) is based on how recently they sent updates.
 
 If you find any bugs in the app, please create a new issue describing it.
 
