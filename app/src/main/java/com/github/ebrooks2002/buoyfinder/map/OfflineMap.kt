@@ -38,7 +38,7 @@ import org.maplibre.android.style.expressions.Expression
 fun OfflineMap(
     modifier: Modifier = Modifier,
     assetData: AssetData,
-    viewmodel: BuoyFinderViewModel = BuoyFinderViewModel()
+    viewmodel: BuoyFinderViewModel
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -46,7 +46,7 @@ fun OfflineMap(
     // create a nav state object containing attributes like position, asset name, ect.
     val assetState = viewmodel.getNavigationState(assetData)
 
-    val featureCollection = remember(assetState.messages) {
+    val featureCollection = remember(assetState.messages, assetState.diffMinutes) {
         val features = assetState.messages.map { message ->
             val feature = Feature.fromGeometry(Point.fromLngLat(message.longitude, message.latitude))
 
@@ -54,11 +54,25 @@ fun OfflineMap(
                 "name",
                 message.messengerName?.substringAfterLast("_") ?: "Unknown"
             )
+
+            val time = message?.parseDate()
+
+            val diffMinutes = if (time != null) {
+                (System.currentTimeMillis() - time.time) / (1000 * 60)
+            } else {
+                Long.MAX_VALUE // If no date, treat as "very old"
+            }
+
+            val color = when {
+                diffMinutes <= 15 -> "#00A86B" // Green
+                diffMinutes <= 30 -> "#FFFF00" // Yellow
+                else -> "#FF0000"              // Red
+            }
+
             feature.addStringProperty("time", message.formattedTime ?: "Unknown Time")
             feature.addStringProperty("date", message.formattedDate ?: "Unknown Date")
-            feature.addStringProperty("color", assetState.color)
-            feature.addStringProperty("diffMinutes", assetState.diffMinutes)
-            Log.d("diff in mins", assetState.diffMinutes)
+            feature.addStringProperty("color", color)
+            feature.addStringProperty("diffMinutes", diffMinutes.toString())
             feature.addStringProperty("position", (message.latitude.toString() + ", " + message.longitude.toString()) ?: "Unknown Position"
             )
 
@@ -158,7 +172,7 @@ fun OfflineMap(
                                 val time = feature.getStringProperty("time")
                                 val diffMinutes = feature.getStringProperty("diffMinutes")
                                 val date = feature.getStringProperty("date")
-                                val info = "$name\n$time\n$date"
+                                val info = "$name\n$time ($diffMinutes min. ago) \n$date"
                                 showBuoyPopup(context, mapView, point.x, point.y, info)
                                 true
                             } else {

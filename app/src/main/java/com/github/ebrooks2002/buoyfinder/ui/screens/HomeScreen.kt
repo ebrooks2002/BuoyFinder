@@ -185,7 +185,8 @@ fun ResultScreen(
                     .height(295.dp)
                     .padding(horizontal = 12.dp)
                     .border(2.dp, Color.Black),
-                assetData = assetData
+                assetData = assetData,
+                viewmodel = viewModel
             )
         }
     }

@@ -117,13 +117,13 @@ class BuoyFinderViewModel : ViewModel(){
      * Processes raw AssetData and Sensor data into a clean state for the UI.
      */
     fun getNavigationState(assetData: AssetData): NavigationState {
-        val messages = assetData.feedMessageResponse?.messages?.list ?: emptyList()
+        val messageList = assetData.feedMessageResponse?.messages?.list ?: emptyList()
 
         // FILTER: Only keep the most recent message for each unique asset
-        val latestMessagesPerAsset = messages.distinctBy { it.messengerName }
+        val latestMessagesPerAsset = messageList.distinctBy { it.messengerName }
 
         // Use latestMessagesPerAsset for the rest of the logic
-        val uniqueAssets = messages.mapNotNull { it.messengerName }.distinct().sorted()
+        val uniqueAssets = messageList.mapNotNull { it.messengerName }.distinct().sorted()
 
 
         // Default selection logic
@@ -131,7 +131,7 @@ class BuoyFinderViewModel : ViewModel(){
             selectedAssetName = uniqueAssets.first()
         }
 
-        val selectedMessage = messages.find { it.messengerName == selectedAssetName }
+        val selectedMessage = messageList.find { it.messengerName == selectedAssetName }
 
         val time = selectedMessage?.parseDate()
 
