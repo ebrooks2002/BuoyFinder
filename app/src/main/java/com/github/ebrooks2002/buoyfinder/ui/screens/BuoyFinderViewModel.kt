@@ -42,7 +42,7 @@ class BuoyFinderViewModel : ViewModel(){
     // given userRotation, calculates direction (n, w, s, e). returns string.
     val headingDirection: String
         get() {
-            val rot = userRotation ?: return "No Compass Found"
+            val rot = userRotation ?: return "No Magnetometer"
             val directions = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
             val index = kotlin.math.round(rot / 45f).toInt() % 8
             val safeIndex = (index + 8) % 8
@@ -137,11 +137,14 @@ class BuoyFinderViewModel : ViewModel(){
 
         val now = System.currentTimeMillis()
 
+        var myHeading = 0f
+
         val diffMinutes = if (time != null) {
             (now - time.time) / (1000 * 60)
         } else {
             Long.MAX_VALUE // If no date, treat as "very old"
         }
+
         Log.d("diffMinutes", diffMinutes.toString())
         val color = when {
             diffMinutes <= 15 -> "#00A86B" // Green
@@ -167,13 +170,17 @@ class BuoyFinderViewModel : ViewModel(){
 
             val distanceKm = userLocation!!.distanceTo(buoyLoc) / 1000
             val bearingToBuoy = userLocation!!.bearingTo(buoyLoc)
-            val myHeading = userLocation!!.bearing
+
+            // only update myHeading if user is moving above 0.5 meters per second.
+            if (userLocation!!.hasSpeed() && userLocation!!.speed > 0.5f) {
+                myHeading = userLocation!!.bearing
+            }
 
             gpsInfo = """
-            Distance to Buoy: %.2f km
-            Bearing to Buoy: %.0f°
-            Currently Moving Towards: %.0f°
-            Currently Pointed Towards: %.0f° %s
+            To Asset: %.2f km
+            Bearing to Asset: %.0f°
+            Moving: %.0f°
+            Pointed: %.0f° %s
         """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, userRotation ?: 0f, headingDirection)
         }
 
@@ -184,6 +191,7 @@ class BuoyFinderViewModel : ViewModel(){
             position = position,
             gpsInfo = gpsInfo,
             uniqueAssets = uniqueAssets,
+            movingHeading = myHeading,
             formattedDate = selectedMessage?.formattedDate ?: "Date not available",
             formattedTime = selectedMessage?.formattedTime ?: "Time not available",
             diffMinutes = diffMinutes.toString(),
@@ -204,6 +212,7 @@ class BuoyFinderViewModel : ViewModel(){
         val formattedDate: String,
         val formattedTime: String,
         val diffMinutes: String,
+        val movingHeading: Float,
         val color: String
     )
 

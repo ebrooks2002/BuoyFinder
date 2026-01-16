@@ -65,7 +65,7 @@ fun OfflineMap(
 
             val color = when {
                 diffMinutes <= 15 -> "#00A86B" // Green
-                diffMinutes <= 30 -> "#FFFF00" // Yellow
+                diffMinutes <= 30 -> "#FFD32C" // Yellow
                 else -> "#FF0000"              // Red
             }
 
@@ -155,6 +155,8 @@ fun OfflineMap(
                         uiSettings.isScrollGesturesEnabled = true
                         uiSettings.isRotateGesturesEnabled = false
                         uiSettings.isTiltGesturesEnabled = false
+                        uiSettings.isLogoEnabled = false
+                        uiSettings.isAttributionEnabled = false
 
                         map.addOnMapClickListener { latLng ->
                             // 1. Convert click location to screen pixels

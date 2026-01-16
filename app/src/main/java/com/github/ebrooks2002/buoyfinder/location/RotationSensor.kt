@@ -30,7 +30,6 @@ class RotationSensor (private val context: Context) {
         val magnetometer = client.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
         // check whether device actually has these sensors.
         if (accelerometer == null || magnetometer == null) {
-            println("lacking proper sensors") //debugging purposes
             close()
             return@callbackFlow
         }

@@ -50,11 +50,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import android.location.Location
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults.cardColors
 import androidx.compose.material3.CardDefaults.cardElevation
 import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.ebrooks2002.buoyfinder.ui.map.OfflineMap
 import com.github.ebrooks2002.buoyfinder.ui.theme.BuoyFinderTheme
@@ -170,7 +172,8 @@ fun ResultScreen(
             outputDateFormat = navState.formattedDate,
             outputTimeFormat = navState.formattedTime,
             gpsInfo = navState.gpsInfo,
-            diffMinutes = navState.diffMinutes
+            diffMinutes = navState.diffMinutes,
+            movingHeading = navState.movingHeading,
         )
 
         Box(
@@ -208,6 +211,7 @@ fun DisplayRefreshMessage(color: Color, message: String) {
 @Composable
 fun DisplayAssetData(
     assetName: String,
+    movingHeading: Float,
     position: String,
     outputDateFormat: String,
     outputTimeFormat: String,
@@ -216,69 +220,141 @@ fun DisplayAssetData(
 ) {
     Card(
         modifier = Modifier
-            .padding(top = 10.dp, start = 16.dp, end = 16.dp)
+            .padding(top = 10.dp, start = 12.dp, end = 12.dp)
             .wrapContentHeight()
             .fillMaxWidth(),
         elevation = cardElevation(defaultElevation = 0.dp),
+        shape = RectangleShape,
         colors = cardColors(containerColor = Color.White)
     ) {
         Column(
             modifier = Modifier
                 .padding(vertical = 20.dp)
                 .wrapContentHeight()
-                .fillMaxWidth(0.95F),
+                .fillMaxWidth(0.99F),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxWidth(),
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-                text = "Tracker: $assetName "
-            )
-            Text(
-                modifier = Modifier
-                    .padding(start = 10.dp)
-                    .fillMaxWidth(),
-                fontSize = 20.sp, text = position
-            )
 
-            Text(
+            Row(
                 modifier = Modifier
-                    .padding(start = 10.dp)
-                    .fillMaxWidth(),
-                fontSize = 20.sp, text = outputDateFormat
-            )
-            Text(
-                modifier = Modifier
-                    .padding(start = 10.dp)
-                    .fillMaxWidth(),
-                fontSize = 20.sp, text = outputTimeFormat + "(" + diffMinutes + " min ago)"
-            )
-
-            Spacer(
-                modifier = Modifier.height(5.dp)
-            )
-            Text(
-                modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxWidth(),
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                text = "My Device:"
-            )
-            if (gpsInfo != null) {
-                Text(
+                    .fillMaxWidth()
+                    .fillMaxHeight(1f)
+            ) {
+                Column(
                     modifier = Modifier
-                        .padding(start = 10.dp, bottom = 10.dp)
+                        .weight(1f)
+                        .wrapContentHeight()
+                   //     .border(0.dp, Color.Black)
                         .fillMaxWidth(),
-                    fontSize = 18.sp,
-                    text = gpsInfo
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    TrackerInfo(assetName, position, outputDateFormat, outputTimeFormat, diffMinutes
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                       // .border(0.dp, Color.Black)
+                        .wrapContentHeight()
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    DeviceInfo(gpsInfo)
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(1f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .wrapContentHeight()
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Arrow(rotation = movingHeading)
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .wrapContentHeight()
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                   // DeviceInfo(gpsInfo)
+                }
             }
         }
+    }
+}
+
+@Composable
+fun TrackerInfo(assetName: String,
+                position: String,
+                outputDateFormat: String,
+                outputTimeFormat: String,
+                diffMinutes: String? = null) {
+    Text(
+        modifier = Modifier
+            .padding(start=2.dp)
+            .fillMaxWidth(),
+        fontWeight = FontWeight.Bold,
+        fontSize = 15.sp,
+        text = assetName
+    )
+    Text(
+        modifier = Modifier
+            .padding(start=2.dp)
+            .fillMaxWidth(),
+        fontSize = 15.sp,
+        text = position
+    )
+    Text(
+        modifier = Modifier
+            .padding(start=2.dp)
+            .fillMaxWidth(),
+        fontSize = 15.sp, text = outputDateFormat
+    )
+    Text(
+        modifier = Modifier
+            .padding(start=2.dp)
+            .fillMaxWidth(),
+        fontSize = 15.sp, text = outputTimeFormat + "(" + diffMinutes + " min ago)"
+    )
+    Text(
+        modifier = Modifier
+            .padding(start=2.dp)
+            .fillMaxWidth(),
+        fontSize = 15.sp, text = "Speed: x m/s"
+    )
+}
+
+@Composable
+fun DeviceInfo(gpsInfo: String? = null) {
+    Text(
+        modifier = Modifier
+            .padding(all=2.dp)
+            .fillMaxWidth(),
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        text = "My Device:"
+    )
+    if (gpsInfo != null) {
+        Text(
+            modifier = Modifier
+                .padding(start = 2.dp)
+                .fillMaxWidth(),
+            fontSize = 15.sp,
+            text = gpsInfo
+        )
     }
 }
 
@@ -287,6 +363,7 @@ fun RefreshFeedButton(onGetDataClicked: () -> Unit) {
     Button(
         onClick = onGetDataClicked,
         modifier = Modifier.padding(top = 40.dp, end = 8.dp),
+        shape = RectangleShape,
         colors = ButtonDefaults.buttonColors(containerColor = Color(0XFF495583))
     )
     {
@@ -300,11 +377,13 @@ fun RefreshFeedButton(onGetDataClicked: () -> Unit) {
 
 @Composable
 fun DropDownMenu(
-    availableAssets: List<String>, onAssetSelected: (String) -> Unit, currentSelection: String?,
-    modifier: Modifier = Modifier
+    availableAssets: List<String>,
+    onAssetSelected: (String) -> Unit,
+    currentSelection: String?,
+    modifier: Modifier = Modifier,
+
 ) {
     var expanded by remember { mutableStateOf(false) }
-
     Box(
         modifier = Modifier.padding(
             top = 40.dp,
@@ -313,6 +392,7 @@ fun DropDownMenu(
     ) { // Adjust this padding to move it up/down
         Button(
             onClick = { expanded = true },
+            shape = RectangleShape,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0XFF495583))
         ) {
             Text(text = currentSelection ?: "Select Asset")
