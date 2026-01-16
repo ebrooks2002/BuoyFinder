@@ -32,7 +32,8 @@ The top left button is for selecting which asset's information you want to view.
  - Bearing to asset
 
 Below that, you will be shown:
-- Direction you're moving towards
+- Direction you're moving towards.
+- Direction asset is in.
 - Direction you're pointed towards
 
 The map shows the coast of Ghana with bathymetry lines. Assets are projected on the map. Their color (green, yellow, or red) is based on how recently they've sent a satellite signal.
