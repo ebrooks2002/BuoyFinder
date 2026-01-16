@@ -27,16 +27,18 @@ Here's what the app should look like:
 
 The top left button is for selecting which asset's information you want to view. Selecting it will show you:
  - The assets GPS coordinates
- - Date and time of most recent update
+ - Date and time of most recent update 
  - Your distance from asset
  - Bearing to asset
 
-Additionally, the direction you're currently moving and pointed towards is shown below the above info. Some devices without an magnetometer won't be able to show direction you're facing.
+Below that, you will be shown:
+- Direction you're moving towards
+- Direction you're pointed towards
 
-The map shows the coast of Ghana with bathymetry lines. Assets are projected on the map. Their color (green, yellow, or red) is based on how recently they sent updates.
+The map shows the coast of Ghana with bathymetry lines. Assets are projected on the map. Their color (green, yellow, or red) is based on how recently they've sent a satellite signal.
 
 If you find any bugs in the app, please create a new issue describing it.
 
 ## Who:
 
-This project is being built and maintained by Ethan Brooks. The project is under the guidance of Omand Lab at University of Rhode Island Graduate School of Oceanography, whom the app is being developed for. Still, this app is open for anyone's use who needs to track a their SPOT TRACE devices.
+This project is being built and maintained by Ethan Brooks. The project is under the guidance of Omand Lab at University of Rhode Island Graduate School of Oceanography, whom the app is being developed for. This app is open for anyone's use who needs to track a their SPOT TRACE devices.
