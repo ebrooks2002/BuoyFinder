@@ -37,23 +37,22 @@ fun Arrow(
 ) {
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .border(2.dp, Color.Black),
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-    ) { // Removed the parenthesis error here
+    ) {
         Text(
             text = headerDisplay,
+            fontWeight = Bold,
+            fontSize = 18.sp,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
         if (rotation != null) {
-            // We use a Box to stack the "N" reference on top of the Arrow space
             Box(
                 modifier = Modifier.size(100.dp), // Area for the compass
                 contentAlignment = Alignment.Center
             ) {
-                // FIXED NORTH REFERENCE
                 Text(
                     text = "N",
                     modifier = Modifier
@@ -77,13 +76,25 @@ fun Arrow(
                 if (targetBearing != null) {
                     // We subtract the device rotation because the compass "rotates"
                     // relative to your physical orientation
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ){
 
+                        val visualRadius = (size.minDimension / 2.0f) - 4.dp.toPx()
 
-                    val relativeAngle = targetBearing - rotation
+                        // 2. Draw the Path (The Ring)
+                        drawCircle(
+                            color = Color.Gray.copy(alpha = 0.3f), // Light gray path
+                            radius = visualRadius,
+                            center = center,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = 1.dp.toPx() // Makes it a ring instead of a solid disk
+                            )
+                        )
 
-                    Canvas(modifier = Modifier.fillMaxSize()){
-                        val radius = size.minDimension / 2.2f // Slightly inside the border
-                        val angleInRad = Math.toRadians(relativeAngle.toDouble())
+                        val radius = size.minDimension / 2.0f // Slightly inside the border
+                        val angleInRad = Math.toRadians(targetBearing.toDouble())
 
                         val x = (center.x + radius * kotlin.math.sin(angleInRad)).toFloat()
                         val y = (center.y - radius * kotlin.math.cos(angleInRad)).toFloat()

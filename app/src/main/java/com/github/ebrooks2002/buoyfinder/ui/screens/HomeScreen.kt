@@ -176,6 +176,7 @@ fun ResultScreen(
             userRotation = navState.userRotation,
             movingHeading = navState.movingHeading,
             bearingToBuoy = navState.bearingToBuoy,
+            assetSpeed = navState.assetSpeedDisplay,
             color = navState.color
         )
 
@@ -190,7 +191,7 @@ fun ResultScreen(
                 modifier = Modifier
                     .height(295.dp)
                     .padding(horizontal = 12.dp)
-                    .border(2.dp, Color.Black),
+                    .border(1.dp, Color.Black),
                 assetData = assetData,
                 viewmodel = viewModel
             )
@@ -222,6 +223,7 @@ fun DisplayAssetData(
     outputTimeFormat: String,
     gpsInfo: String? = null,
     color: String,
+    assetSpeed: String? = null,
     diffMinutes: String? = null
 ) {
     Card(
@@ -254,15 +256,20 @@ fun DisplayAssetData(
                    //     .border(0.dp, Color.Black)
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.spacedBy(-4.dp),
                 ) {
-                    TrackerInfo(assetName, position, outputDateFormat, outputTimeFormat, color=color, diffMinutes=diffMinutes)
+                    TrackerInfo(assetName,
+                        position,
+                        outputDateFormat,
+                        outputTimeFormat,
+                        color=color,
+                        diffMinutes=diffMinutes,
+                        assetSpeed = assetSpeed)
 
                 }
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                       // .border(0.dp, Color.Black)
                         .wrapContentHeight()
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -300,7 +307,8 @@ fun DisplayAssetData(
                 ) {
                     Arrow(
                         rotation = userRotation,
-                        headerDisplay = "Rotation Arrow"
+                        headerDisplay = "Facing:",
+                        targetBearing = bearingToBuoy
                     )
                 }
             }
@@ -314,6 +322,7 @@ fun TrackerInfo(assetName: String,
                 outputDateFormat: String,
                 outputTimeFormat: String,
                 color: String,
+                assetSpeed: String? = null,
                 diffMinutes: String? = null) {
     Text(
         modifier = Modifier
@@ -338,7 +347,7 @@ fun TrackerInfo(assetName: String,
     )
     Row(
         modifier = Modifier
-            .border(0.dp, Color.Black)
+            .fillMaxWidth()
     ) {
         Text(
             modifier = Modifier
@@ -353,12 +362,13 @@ fun TrackerInfo(assetName: String,
             )
         }
     }
-    Text(
-        modifier = Modifier
-            .padding(start=2.dp)
-            .fillMaxWidth(),
-        fontSize = 15.sp, text = "Speed: x m/s"
-    )
+        Text(
+            modifier = Modifier
+                .padding(start=2.dp)
+                .fillMaxWidth(),
+            fontSize = 15.sp,
+            text = assetSpeed ?: "deez"
+        )
 }
 
 @Composable
@@ -371,12 +381,14 @@ fun DeviceInfo(gpsInfo: String? = null) {
         fontWeight = FontWeight.Bold,
         text = "My Device:"
     )
+
     if (gpsInfo != null) {
         Text(
             modifier = Modifier
                 .padding(start = 2.dp)
                 .fillMaxWidth(),
             fontSize = 15.sp,
+            lineHeight = 17.sp,
             text = gpsInfo
         )
     }

@@ -11,6 +11,7 @@ import retrofit2.converter.simplexml.SimpleXmlConverterFactory
 import retrofit2.http.GET
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.http.Query
 
 private const val FEED_ID = "0r0YXhJmCiRJpmmJiaAdr6Ez6VIhahnMu"
 
@@ -39,7 +40,10 @@ interface SPOTApiService {
      * Returns an asset data object containing XML feed data.
      */
     @GET("message.xml")
-    suspend fun getData(): AssetData
+    suspend fun getData(
+        @Query("count") count: Int = 50,
+        @Query("start") start: Int = 0
+    ): AssetData
 }
 
 object SPOTApi {

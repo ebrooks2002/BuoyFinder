@@ -1,5 +1,6 @@
 package com.github.ebrooks2002.buoyfinder.ui.map
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.RectF
 import android.util.Log
@@ -31,6 +32,10 @@ import org.maplibre.geojson.Point
 import java.io.File
 import java.io.FileOutputStream
 import com.github.ebrooks2002.buoyfinder.ui.screens.BuoyFinderViewModel
+import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.modes.CameraMode
+import org.maplibre.android.location.modes.RenderMode
+import org.maplibre.android.location.permissions.PermissionsManager
 import org.maplibre.android.style.expressions.Expression
 
 
@@ -92,11 +97,32 @@ fun OfflineMap(
     // 2. Prepare files in the background (Prevents UI Freeze)
     LaunchedEffect(context) {
         withContext(Dispatchers.IO) {
-            val mbtilesFile = copyAssetToFiles(context, "ghana_offline_3857.mbtiles")
-            val jsonFile = copyAssetToFiles(context, "styles.json")
+            // 1. Copy MBTiles
+            val mbtilesFile = copyAssetToFiles(context, "world_coastline_small.mbtiles")
+
+            // 2. FORCE copy the Style JSON (overwrite old cached version)
+            val jsonFile = File(context.filesDir, "coastlines_styles.json")
+            context.assets.open("coastlines_styles.json").use { input ->
+                jsonFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            // 3. Read and Replace
             var jsonContent = jsonFile.readText()
-            jsonContent = jsonContent.replace("{path_to_mbtiles}", mbtilesFile.absolutePath)
+
+            // Ensure 3 slashes: mbtiles:///data/...
+            val absoluteMbtilesPath = "mbtiles://${mbtilesFile.absolutePath}"
+
+            // Perform replacement
+            jsonContent = jsonContent.replace("{path_to_mbtiles}", absoluteMbtilesPath)
+
+            // Save
             jsonFile.writeText(jsonContent)
+
+            Log.d("MapDebug", "FINAL JSON CONTENT: $jsonContent")
+
+            // 4. Update the state
             styleUrl = "file://${jsonFile.absolutePath}"
         }
     }
@@ -104,7 +130,6 @@ fun OfflineMap(
     // 3. Render Map only when style is ready
     if (styleUrl != null) {
         val currentStyleUrl = styleUrl!!
-
         val mapView = remember {
             MapView(context).apply {
                 // IMPORTANT: onCreate is required for MapLibre/Mapbox to function
@@ -139,6 +164,7 @@ fun OfflineMap(
                             val sourceId = "buoys-source"
                             val source = GeoJsonSource(sourceId, featureCollection)
                             style.addSource(source)
+                            enableLocationComponent(context, map, style)
 
                             val circleLayer = CircleLayer("buoys-layer", sourceId)
                             circleLayer.setProperties(
@@ -149,6 +175,7 @@ fun OfflineMap(
                             )
                             style.addLayer(circleLayer)
                         }
+
 
                         val uiSettings = map.uiSettings
                         uiSettings.isZoomGesturesEnabled = true
@@ -225,6 +252,30 @@ private fun copyAssetToFiles(context: Context, fileName: String): File {
         }
     }
     return file
+}
+
+@SuppressLint("MissingPermission")
+private fun enableLocationComponent(context: Context, map: org.maplibre.android.maps.MapLibreMap, style: Style) {
+    // Check if permissions are granted (You should handle the request logic elsewhere in your UI)
+    if (PermissionsManager.areLocationPermissionsGranted(context)) {
+        val locationComponent = map.locationComponent
+
+        // Activate with options
+        val activationOptions = LocationComponentActivationOptions.builder(context, style)
+            .useDefaultLocationEngine(true)
+            .build()
+
+        locationComponent.activateLocationComponent(activationOptions)
+
+        // Enable to make it visible
+        locationComponent.isLocationComponentEnabled = true
+
+        // Set the render mode (COMPASS shows the blue dot with a direction bearing)
+        locationComponent.renderMode = RenderMode.COMPASS
+
+
+        locationComponent.cameraMode = CameraMode.NONE
+    }
 }
 
 private fun showBuoyPopup(

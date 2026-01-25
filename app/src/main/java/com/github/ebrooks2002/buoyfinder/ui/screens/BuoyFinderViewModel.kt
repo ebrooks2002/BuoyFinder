@@ -92,9 +92,26 @@ class BuoyFinderViewModel : ViewModel(){
         viewModelScope.launch {
             buoyFinderUiState = BuoyFinderUiState.Loading
             buoyFinderUiState = try {
-                val listResult = SPOTApi.retrofitService.getData() // returns a raw xml file with SPOT API response.
-                Log.d("BuoyDebug", "List Result: $listResult")
-                BuoyFinderUiState.Success(listResult)
+                val allMessages = mutableListOf<Message>()
+                var listResult: AssetData? = null
+                for (i in 0..0) {
+                    val start = i * 50
+                    val result = SPOTApi.retrofitService.getData(start = start)
+                    if (listResult == null) {
+                        listResult = result
+                    }
+                    val messages = result.feedMessageResponse?.messages?.list ?: emptyList()
+                    allMessages.addAll(messages)
+                    if (messages.size < 50) break
+                }
+                if (listResult != null) {
+                    listResult.feedMessageResponse?.messages?.list = allMessages
+                    Log.d("BuoyDebug", "Final combined count being sent to UI: ${allMessages.size}")
+                    BuoyFinderUiState.Success(listResult)
+                }
+                else {
+                    BuoyFinderUiState.Error
+                }
             } catch (e: HttpException) {
                 Log.e("BuoyViewModel", "Network request failed: ${e.code()} ${e.message()}", e)
                 BuoyFinderUiState.Error
@@ -118,6 +135,49 @@ class BuoyFinderViewModel : ViewModel(){
      */
     fun getNavigationState(assetData: AssetData): NavigationState {
         val messageList = assetData.feedMessageResponse?.messages?.list ?: emptyList()
+        var assetSpeedDisplay = "0.00 km/h"
+
+        // 1. Get all messages for the SELECTED asset, sorted by time (newest first)
+        val assetHistory = messageList
+            .filter { it.messengerName == selectedAssetName }
+            .sortedByDescending { it.parseDate()?.time ?: 0L }
+
+        Log.d("asset his", assetHistory.toString())
+
+        // 2. We need at least 2 points to calculate speed
+        if (assetHistory.size >= 2) {
+            val latest = assetHistory[0]
+            val previous = assetHistory[1]
+
+            val time1 = latest.parseDate()?.time ?: 0L
+            val time2 = previous.parseDate()?.time ?: 0L
+
+            val timeDiffMs = time1 - time2
+
+            if (timeDiffMs > 0) {
+                val loc1 = Location("PointA").apply {
+                    latitude = latest.latitude
+                    longitude = latest.longitude
+                }
+                val loc2 = Location("PointB").apply {
+                    latitude = previous.latitude
+                    longitude = previous.longitude
+                }
+
+                val distanceMeters = loc1.distanceTo(loc2)
+
+                // Speed = Distance (km) / Time (hours)
+                val distanceKm = distanceMeters / 1000.0
+                val timeHours = timeDiffMs / (1000.0 * 60.0 * 60.0)
+
+                val speedKmh = distanceKm / timeHours
+
+                assetSpeedDisplay = "%.2f km/h".format(speedKmh)
+                Log.d("speed", assetSpeedDisplay)
+            }
+        } else {
+            assetSpeedDisplay = "Calculating..." // Or "N/A" if only 1 message exists
+        }
 
         // FILTER: Only keep the most recent message for each unique asset
         val latestMessagesPerAsset = messageList.distinctBy { it.messengerName }
@@ -125,8 +185,6 @@ class BuoyFinderViewModel : ViewModel(){
         // Use latestMessagesPerAsset for the rest of the logic
         val uniqueAssets = messageList.mapNotNull { it.messengerName }.distinct().sorted()
 
-
-        // Default selection logic
         if (selectedAssetName == null && uniqueAssets.isNotEmpty()) {
             selectedAssetName = uniqueAssets.first()
         }
@@ -150,7 +208,7 @@ class BuoyFinderViewModel : ViewModel(){
         Log.d("diffMinutes", diffMinutes.toString())
         val color = when {
             diffMinutes <= 15 -> "#00A86B" // Green
-            diffMinutes <= 30 -> "#FFFF00" // Yellow
+            diffMinutes <= 30 -> "#ccae16" // Yellow
             else -> "#FF0000"              // Red
         }
 
@@ -161,6 +219,7 @@ class BuoyFinderViewModel : ViewModel(){
         val position = selectedMessage?.let {
             "Location: ${it.latitude}, ${it.longitude}"
         } ?: "Position not available"
+
 
         // Math: GPS / Navigation Info
         var gpsInfo = "Waiting for GPS Location..."
@@ -180,10 +239,17 @@ class BuoyFinderViewModel : ViewModel(){
 
             gpsInfo = """
             To Asset: %.2f km
+            Lat: % .4f 
+            Lon: % .4f
             Bearing: %.0f°
             Heading: %.0f°
             Facing: %.0f° %s
-        """.trimIndent().format(distanceKm, bearingToBuoy, myHeading, userRotation ?: 0f, headingDirection)
+        """.trimIndent().format(distanceKm,
+                userLocation!!.latitude,
+                userLocation!!.longitude,
+                bearingToBuoy, myHeading,
+                userRotation ?: 0f,
+                headingDirection)
         }
 
         return NavigationState(
@@ -199,6 +265,7 @@ class BuoyFinderViewModel : ViewModel(){
             diffMinutes = diffMinutes.toString(),
             userRotation = userRotation,
             bearingToBuoy = bearingToBuoy,
+            assetSpeedDisplay = assetSpeedDisplay,
             color = color
         )
     }
@@ -219,6 +286,7 @@ class BuoyFinderViewModel : ViewModel(){
         val movingHeading: Float,
         val userRotation: Float?,
         val bearingToBuoy: Float,
+        val assetSpeedDisplay: String,
         val color: String
     )
 
