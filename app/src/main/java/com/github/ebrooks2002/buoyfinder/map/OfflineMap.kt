@@ -50,6 +50,7 @@ fun OfflineMap(
 
     // create a nav state object containing attributes like position, asset name, ect.
     val assetState = viewmodel.getNavigationState(assetData)
+    val selectedName = assetState.displayName
 
     val featureCollection = remember(assetState.messages, assetState.diffMinutes) {
         val features = assetState.messages.map { message ->
@@ -107,22 +108,11 @@ fun OfflineMap(
                     input.copyTo(output)
                 }
             }
-
-            // 3. Read and Replace
             var jsonContent = jsonFile.readText()
-
-            // Ensure 3 slashes: mbtiles:///data/...
             val absoluteMbtilesPath = "mbtiles://${mbtilesFile.absolutePath}"
-
-            // Perform replacement
             jsonContent = jsonContent.replace("{path_to_mbtiles}", absoluteMbtilesPath)
-
-            // Save
             jsonFile.writeText(jsonContent)
-
             Log.d("MapDebug", "FINAL JSON CONTENT: $jsonContent")
-
-            // 4. Update the state
             styleUrl = "file://${jsonFile.absolutePath}"
         }
     }
@@ -137,7 +127,6 @@ fun OfflineMap(
             }
         }
 
-        // 4. Manage Lifecycle
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
@@ -164,14 +153,30 @@ fun OfflineMap(
                             val sourceId = "buoys-source"
                             val source = GeoJsonSource(sourceId, featureCollection)
                             style.addSource(source)
+                            Log.d("buoy", sourceId.toString())
                             enableLocationComponent(context, map, style)
 
                             val circleLayer = CircleLayer("buoys-layer", sourceId)
                             circleLayer.setProperties(
                                 PropertyFactory.circleRadius(6f),
                                 PropertyFactory.circleColor(Expression.get("color")),
-                                PropertyFactory.circleStrokeWidth(1f),
-                                PropertyFactory.circleStrokeColor(android.graphics.Color.WHITE)
+
+                                PropertyFactory.circleStrokeWidth(
+                                    Expression.switchCase(
+                                        Expression.eq(Expression.get("name"), Expression.literal(selectedName)),
+                                        Expression.literal(3f),
+                                        Expression.literal(1f)
+                                    )
+                                ),
+
+                                PropertyFactory.circleStrokeColor(
+                                    Expression.switchCase(
+                                        Expression.eq(Expression.get("name"), Expression.literal(selectedName)),
+                                        Expression.literal("#000000"),
+
+                                        Expression.literal("#FFFFFF")
+                                    )
+                                )
                             )
                             style.addLayer(circleLayer)
                         }
@@ -225,8 +230,36 @@ fun OfflineMap(
             update = { _ ->
                 // Refresh pins when new data comes in
                 mapView.getMapAsync { map ->
-                    val source = map.style?.getSourceAs<GeoJsonSource>("buoys-source")
-                    source?.setGeoJson(featureCollection)
+                    val style = map.style
+                    if (style != null && style.isFullyLoaded) {
+                        val source = map.style?.getSourceAs<GeoJsonSource>("buoys-source")
+                        source?.setGeoJson(featureCollection)
+                        val layer = style.getLayerAs<CircleLayer>("buoys-layer")
+                        layer?.setProperties(
+                            PropertyFactory.circleStrokeWidth(
+                                Expression.switchCase(
+                                    Expression.eq(
+                                        Expression.get("name"),
+                                        Expression.literal(selectedName)
+                                    ),
+                                    Expression.literal(3f),
+                                    Expression.literal(1f)
+                                )
+                            ),
+
+                            // DYNAMIC STROKE COLOR
+                            PropertyFactory.circleStrokeColor(
+                                Expression.switchCase(
+                                    Expression.eq(
+                                        Expression.get("name"),
+                                        Expression.literal(selectedName)
+                                    ),
+                                    Expression.literal("#000000"),
+                                    Expression.literal("#FFFFFF")
+                                )
+                            )
+                        )
+                    }
                 }
             }
         )
@@ -259,20 +292,17 @@ private fun enableLocationComponent(context: Context, map: org.maplibre.android.
     // Check if permissions are granted (You should handle the request logic elsewhere in your UI)
     if (PermissionsManager.areLocationPermissionsGranted(context)) {
         val locationComponent = map.locationComponent
-
         // Activate with options
         val activationOptions = LocationComponentActivationOptions.builder(context, style)
             .useDefaultLocationEngine(true)
             .build()
 
         locationComponent.activateLocationComponent(activationOptions)
-
         // Enable to make it visible
         locationComponent.isLocationComponentEnabled = true
 
         // Set the render mode (COMPASS shows the blue dot with a direction bearing)
         locationComponent.renderMode = RenderMode.COMPASS
-
 
         locationComponent.cameraMode = CameraMode.NONE
     }

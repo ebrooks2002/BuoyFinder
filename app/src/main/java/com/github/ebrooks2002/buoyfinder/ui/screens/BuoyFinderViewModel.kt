@@ -178,10 +178,8 @@ class BuoyFinderViewModel : ViewModel(){
         } else {
             assetSpeedDisplay = "Calculating..." // Or "N/A" if only 1 message exists
         }
-
         // FILTER: Only keep the most recent message for each unique asset
         val latestMessagesPerAsset = messageList.distinctBy { it.messengerName }
-
         // Use latestMessagesPerAsset for the rest of the logic
         val uniqueAssets = messageList.mapNotNull { it.messengerName }.distinct().sorted()
 
@@ -220,8 +218,6 @@ class BuoyFinderViewModel : ViewModel(){
             "Location: ${it.latitude}, ${it.longitude}"
         } ?: "Position not available"
 
-
-        // Math: GPS / Navigation Info
         var gpsInfo = "Waiting for GPS Location..."
         if (userLocation != null && selectedMessage != null) {
             val buoyLoc = Location("Buoy").apply {
