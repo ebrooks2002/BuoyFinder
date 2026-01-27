@@ -253,10 +253,9 @@ fun DisplayAssetData(
                     modifier = Modifier
                         .weight(1f)
                         .wrapContentHeight()
-                   //     .border(0.dp, Color.Black)
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(-4.dp),
+                    verticalArrangement = Arrangement.spacedBy(-6.dp),
                 ) {
                     TrackerInfo(assetName,
                         position,
@@ -337,6 +336,7 @@ fun TrackerInfo(assetName: String,
             .padding(start=2.dp)
             .fillMaxWidth(),
         fontSize = 15.sp,
+        lineHeight = 18.sp,
         text = position
     )
     Text(

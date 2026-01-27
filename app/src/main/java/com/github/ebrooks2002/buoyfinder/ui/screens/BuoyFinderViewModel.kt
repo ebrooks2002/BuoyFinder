@@ -215,7 +215,7 @@ class BuoyFinderViewModel : ViewModel(){
 
         // UI String: Position
         val position = selectedMessage?.let {
-            "Location: ${it.latitude}, ${it.longitude}"
+            "Lat: ${it.latitude},\nLong:${it.longitude}"
         } ?: "Position not available"
 
         var gpsInfo = "Waiting for GPS Location..."
