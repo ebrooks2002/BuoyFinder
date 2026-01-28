@@ -50,34 +50,20 @@ fun OfflineMap(
 
     // create a nav state object containing attributes like position, asset name, ect.
     val assetState = viewmodel.getNavigationState(assetData)
+
     val selectedName = assetState.displayName
 
-    val featureCollection = remember(assetState.messages, assetState.diffMinutes) {
-        val features = assetState.messages.map { message ->
+    val featureCollection = remember(assetState.allMessages, assetState.diffMinutes) {
+        val features = assetState.allMessages.map { message ->
             val feature = Feature.fromGeometry(Point.fromLngLat(message.longitude, message.latitude))
-
-            feature.addStringProperty(
-                "name",
-                message.messengerName?.substringAfterLast("_") ?: "Unknown"
-            )
-
+            feature.addStringProperty("name", message.messengerName?.substringAfterLast("_") ?: "Unknown")
             val time = message?.parseDate()
-
-            val diffMinutes = if (time != null) {
-                (System.currentTimeMillis() - time.time) / (1000 * 60)
-            } else {
+            val diffMinutes = if (time != null) {(System.currentTimeMillis() - time.time) / (1000 * 60)}
+            else {
                 Long.MAX_VALUE // If no date, treat as "very old"
             }
-
-            val color = when {
-                diffMinutes <= 15 -> "#00A86B" // Green
-                diffMinutes <= 30 -> "#FFD32C" // Yellow
-                else -> "#FF0000"              // Red
-            }
-
             feature.addStringProperty("time", message.formattedTime ?: "Unknown Time")
             feature.addStringProperty("date", message.formattedDate ?: "Unknown Date")
-            feature.addStringProperty("color", color)
             feature.addStringProperty("diffMinutes", diffMinutes.toString())
             feature.addStringProperty("position", (message.latitude.toString() + ", " + message.longitude.toString()) ?: "Unknown Position"
             )
@@ -99,11 +85,11 @@ fun OfflineMap(
     LaunchedEffect(context) {
         withContext(Dispatchers.IO) {
             // 1. Copy MBTiles
-            val mbtilesFile = copyAssetToFiles(context, "world_coastline_small.mbtiles")
+            val mbtilesFile = copyAssetToFiles(context, "global_coastline.mbtiles")
 
             // 2. FORCE copy the Style JSON (overwrite old cached version)
-            val jsonFile = File(context.filesDir, "coastlines_styles.json")
-            context.assets.open("coastlines_styles.json").use { input ->
+            val jsonFile = File(context.filesDir, "coastlines_styles1.json")
+            context.assets.open("coastlines_styles1.json").use { input ->
                 jsonFile.outputStream().use { output ->
                     input.copyTo(output)
                 }
@@ -155,11 +141,9 @@ fun OfflineMap(
                             style.addSource(source)
                             Log.d("buoy", sourceId.toString())
                             enableLocationComponent(context, map, style)
-
                             val circleLayer = CircleLayer("buoys-layer", sourceId)
                             circleLayer.setProperties(
                                 PropertyFactory.circleRadius(6f),
-                                PropertyFactory.circleColor(Expression.get("color")),
 
                                 PropertyFactory.circleStrokeWidth(
                                     Expression.switchCase(
@@ -169,18 +153,35 @@ fun OfflineMap(
                                     )
                                 ),
 
+                                PropertyFactory.circleColor(
+                                    Expression.interpolate(
+                                        Expression.linear(),
+                                        Expression.toNumber(Expression.get("diffMinutes")),
+                                        Expression.stop(0, Expression.rgb(0, 168, 107)),    // 0 mins: Vibrant Green
+                                        Expression.stop(45, Expression.rgb(255, 211, 44)),  // 12 hrs: Yellow
+                                        Expression.stop(120, Expression.rgb(255, 0, 0))     // 24 hrs: Red
+                                    )
+                                ),
+
+                                PropertyFactory.circleOpacity(
+                                    Expression.interpolate(
+                                        Expression.linear(),
+                                        Expression.toNumber(Expression.get("diffMinutes")),
+                                        Expression.stop(0, 1.0f),   // New: Solid
+                                        Expression.stop(120, 0.2f) // Old: Ghostly
+                                    )
+                                ),
+
                                 PropertyFactory.circleStrokeColor(
                                     Expression.switchCase(
                                         Expression.eq(Expression.get("name"), Expression.literal(selectedName)),
                                         Expression.literal("#000000"),
-
                                         Expression.literal("#FFFFFF")
                                     )
                                 )
                             )
                             style.addLayer(circleLayer)
                         }
-
 
                         val uiSettings = map.uiSettings
                         uiSettings.isZoomGesturesEnabled = true

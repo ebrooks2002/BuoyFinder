@@ -20,6 +20,8 @@
       "type": "line",
       "source": "local_mbtiles_source",
       "source-layer": "coastline",
+      "minzoom": 0,
+      "maxzoom": 10,
       "layout": {
         "line-join": "round",
         "line-cap": "round"
@@ -27,7 +29,7 @@
       "paint": {
         "line-color": "#948325",
         "line-width": 1.25,
-        "line-opacity": 0.4
+        "line-opacity": 1.0
       }
     }
   ]

@@ -249,6 +249,7 @@ class BuoyFinderViewModel : ViewModel(){
         }
 
         return NavigationState(
+            allMessages = messageList,
             messages = latestMessagesPerAsset,
             selectedAssetName = selectedAssetName,
             displayName = displayName,
@@ -270,6 +271,7 @@ class BuoyFinderViewModel : ViewModel(){
      * Data class to hold pre-processed UI info
      */
     data class NavigationState(
+        val allMessages: List<Message>,
         val messages : List<Message>,
         val selectedAssetName: String?,
         val displayName: String,
@@ -285,5 +287,4 @@ class BuoyFinderViewModel : ViewModel(){
         val assetSpeedDisplay: String,
         val color: String
     )
-
 }
